@@ -30,12 +30,6 @@ func main() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	// Auto migrate the schema
-	err = db.AutoMigrate(&models.User{})
-	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
-	}
-
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 
@@ -62,6 +56,7 @@ func main() {
 		users.GET("/:id", userHandler.GetUser)
 		users.PUT("/:id", userHandler.UpdateUser)
 		users.DELETE("/:id", userHandler.DeleteUser)
+		users.POST("/login", userHandler.Login)
 	}
 
 	// Start server

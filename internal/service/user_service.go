@@ -12,6 +12,7 @@ type UserService interface {
 	GetUserByEmail(email string) (*models.User, error)
 	UpdateUser(user *models.User) error
 	DeleteUser(id uint) error
+	ValidatePassword(email, password string) (*models.User, error)
 }
 
 type userService struct {
@@ -31,6 +32,11 @@ func (s *userService) CreateUser(user *models.User) error {
 		return errors.New("user with this email already exists")
 	}
 
+	// Hash the password before saving
+	if err := user.HashPassword(); err != nil {
+		return err
+	}
+
 	return s.userRepo.Create(user)
 }
 
@@ -43,9 +49,29 @@ func (s *userService) GetUserByEmail(email string) (*models.User, error) {
 }
 
 func (s *userService) UpdateUser(user *models.User) error {
+	// If password is being updated, hash it
+	if user.Password != "" {
+		if err := user.HashPassword(); err != nil {
+			return err
+		}
+	}
 	return s.userRepo.Update(user)
 }
 
 func (s *userService) DeleteUser(id uint) error {
 	return s.userRepo.Delete(id)
+}
+
+func (s *userService) ValidatePassword(email, password string) (*models.User, error) {
+	user, err := s.userRepo.FindByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, errors.New("user not found")
+	}
+	if !user.CheckPassword(password) {
+		return nil, errors.New("invalid password")
+	}
+	return user, nil
 } 

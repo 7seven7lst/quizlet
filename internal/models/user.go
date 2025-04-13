@@ -15,6 +15,8 @@ type User struct {
 	Username  string         `gorm:"uniqueIndex;not null" json:"username"`
 	Email     string         `gorm:"uniqueIndex;not null" json:"email"`
 	Password  string         `gorm:"not null" json:"-"`
+	Quizzes   []Quiz         `json:"quizzes,omitempty"`
+	QuizSuites []QuizSuite   `json:"quiz_suites,omitempty"`
 }
 
 // HashPassword hashes the password using bcrypt

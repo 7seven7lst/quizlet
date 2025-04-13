@@ -33,6 +33,9 @@ docker-compose exec api migrate -path /app/migrations -database "postgres://post
 
 # Check migration version
 docker-compose exec api migrate -path /app/migrations -database "postgres://postgres:postgres@postgres:5432/quizlet?sslmode=disable" version
+
+# ssh into container
+docker-compose exec api /bin/sh
 ```
 
 Note: Inside the container:

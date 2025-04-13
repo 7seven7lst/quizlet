@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"quizlet/internal/handlers"
-	"quizlet/internal/models"
 	"quizlet/internal/repository"
 	"quizlet/internal/service"
 
@@ -32,12 +31,18 @@ func main() {
 
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
+	quizRepo := repository.NewQuizRepository(db)
+	quizSuiteRepo := repository.NewQuizSuiteRepository(db)
 
 	// Initialize services
 	userService := service.NewUserService(userRepo)
+	quizService := service.NewQuizService(quizRepo)
+	quizSuiteService := service.NewQuizSuiteService(quizSuiteRepo, quizRepo)
 
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userService)
+	quizHandler := handlers.NewQuizHandler(quizService)
+	quizSuiteHandler := handlers.NewQuizSuiteHandler(quizSuiteService)
 
 	// Initialize router
 	r := gin.Default()
@@ -57,6 +62,30 @@ func main() {
 		users.PUT("/:id", userHandler.UpdateUser)
 		users.DELETE("/:id", userHandler.DeleteUser)
 		users.POST("/login", userHandler.Login)
+	}
+
+	// Quiz routes
+	quizzes := r.Group("/api/quizzes")
+	{
+		quizzes.POST("/", quizHandler.CreateQuiz)
+		quizzes.GET("/:id", quizHandler.GetQuiz)
+		quizzes.PUT("/:id", quizHandler.UpdateQuiz)
+		quizzes.DELETE("/:id", quizHandler.DeleteQuiz)
+		quizzes.GET("/user", quizHandler.GetUserQuizzes)
+		quizzes.POST("/:id/selections", quizHandler.AddSelection)
+		quizzes.DELETE("/:id/selections/:selectionId", quizHandler.RemoveSelection)
+	}
+
+	// Quiz Suite routes
+	quizSuites := r.Group("/api/quiz-suites")
+	{
+		quizSuites.POST("/", quizSuiteHandler.CreateQuizSuite)
+		quizSuites.GET("/:id", quizSuiteHandler.GetQuizSuite)
+		quizSuites.PUT("/:id", quizSuiteHandler.UpdateQuizSuite)
+		quizSuites.DELETE("/:id", quizSuiteHandler.DeleteQuizSuite)
+		quizSuites.GET("/user", quizSuiteHandler.GetUserQuizSuites)
+		quizSuites.POST("/:id/quizzes/:quizId", quizSuiteHandler.AddQuizToSuite)
+		quizSuites.DELETE("/:id/quizzes/:quizId", quizSuiteHandler.RemoveQuizFromSuite)
 	}
 
 	// Start server

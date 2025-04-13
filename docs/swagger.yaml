@@ -1,0 +1,278 @@
+basePath: /api
+definitions:
+  handlers.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  handlers.SuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  models.Quiz:
+    properties:
+      correct_answer:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        $ref: '#/definitions/models.User'
+      created_by_id:
+        type: integer
+      id:
+        type: integer
+      question:
+        type: string
+      quiz_suites:
+        items:
+          $ref: '#/definitions/models.QuizSuite'
+        type: array
+      quiz_type:
+        $ref: '#/definitions/models.QuizType'
+      selections:
+        items:
+          $ref: '#/definitions/models.QuizSelection'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  models.QuizSelection:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_correct:
+        type: boolean
+      quiz:
+        $ref: '#/definitions/models.Quiz'
+      quiz_id:
+        type: integer
+      selection_text:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.QuizSuite:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        $ref: '#/definitions/models.User'
+      created_by_id:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      quizzes:
+        items:
+          $ref: '#/definitions/models.Quiz'
+        type: array
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.QuizType:
+    enum:
+    - single_choice
+    - multi_choice
+    - true_false
+    type: string
+    x-enum-varnames:
+    - QuizTypeSingleChoice
+    - QuizTypeMultiChoice
+    - QuizTypeTrueFalse
+  models.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      quiz_suites:
+        items:
+          $ref: '#/definitions/models.QuizSuite'
+        type: array
+      quizzes:
+        items:
+          $ref: '#/definitions/models.Quiz'
+        type: array
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API for managing quizzes, quiz suites, and users
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Quizlet API
+  version: "1.0"
+paths:
+  /quiz-suites:
+    get:
+      description: Retrieve all quiz suites for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.QuizSuite'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all quiz suites
+      tags:
+      - quiz-suites
+    post:
+      consumes:
+      - application/json
+      description: Create a new quiz suite with the provided details
+      parameters:
+      - description: Quiz Suite object
+        in: body
+        name: quiz_suite
+        required: true
+        schema:
+          $ref: '#/definitions/models.QuizSuite'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.QuizSuite'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new quiz suite
+      tags:
+      - quiz-suites
+  /quiz-suites/{id}:
+    delete:
+      description: Delete an existing quiz suite by its ID
+      parameters:
+      - description: Quiz Suite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a quiz suite
+      tags:
+      - quiz-suites
+    get:
+      description: Retrieve a specific quiz suite by its ID
+      parameters:
+      - description: Quiz Suite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.QuizSuite'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a quiz suite by ID
+      tags:
+      - quiz-suites
+    put:
+      consumes:
+      - application/json
+      description: Update an existing quiz suite with the provided details
+      parameters:
+      - description: Quiz Suite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Quiz Suite object
+        in: body
+        name: quiz_suite
+        required: true
+        schema:
+          $ref: '#/definitions/models.QuizSuite'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.QuizSuite'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a quiz suite
+      tags:
+      - quiz-suites
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

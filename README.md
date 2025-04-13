@@ -1,22 +1,92 @@
 # Quizlet API
 
-A Go-based API service with PostgreSQL database.
+A RESTful API for managing quizzes and quiz suites.
+
+## Features
+
+- User authentication and authorization
+- CRUD operations for quizzes and quiz suites
+- PostgreSQL database with GORM
+- Swagger/OpenAPI documentation
 
 ## Prerequisites
 
-- Docker
-- Docker Compose
+- Go 1.22 or higher
+- PostgreSQL
 - Make (optional, for using Makefile commands)
 
 ## Getting Started
 
 1. Clone the repository
-2. Build and start the containers:
-```bash
-docker-compose up --build
+2. Install dependencies:
+   ```bash
+   go mod download
+   ```
+3. Set up your environment variables in `.env`:
+   ```
+   DB_HOST=localhost
+   DB_USER=your_db_user
+   DB_PASSWORD=your_db_password
+   DB_NAME=quizlet
+   DB_PORT=5432
+   ```
+4. Run the application:
+   ```bash
+   go run cmd/api/main.go
+   ```
+
+## API Documentation
+
+The API documentation is available through Swagger UI and ReDoc:
+
+- Swagger UI: `http://localhost:8080/swagger/index.html`
+  - Interactive API documentation
+  - Test endpoints directly from the browser
+  - View request/response schemas
+  - See authentication requirements
+
+- OpenAPI Specification: `http://localhost:8080/swagger/doc.json`
+  - Raw OpenAPI/Swagger specification in JSON format
+  - Useful for generating client libraries or importing into other tools
+
+## Project Structure
+
+```
+.
+├── cmd/
+│   └── api/
+│       └── main.go
+├── internal/
+│   ├── handlers/
+│   │   ├── quiz.go
+│   │   ├── quiz_suite.go
+│   │   └── responses.go
+│   └── models/
+│       ├── quiz.go
+│       └── quiz_suite.go
+├── docs/
+├── .env
+├── .gitignore
+├── go.mod
+├── go.sum
+└── README.md
 ```
 
-The API will be available at `http://localhost:8080` and PostgreSQL at `localhost:5433`.
+## Development
+
+### Running Tests
+
+```bash
+go test ./...
+```
+
+### Database Migrations
+
+Database migrations are handled automatically by GORM when the application starts.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Database Migrations
 

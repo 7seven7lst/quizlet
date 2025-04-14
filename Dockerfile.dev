@@ -4,19 +4,25 @@ FROM golang:1.22-alpine
 WORKDIR /app
 
 # Install build dependencies and migrate tool
-RUN apk add --no-cache gcc musl-dev curl && \
+RUN apk add --no-cache gcc musl-dev curl git && \
     curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz && \
     mv migrate /usr/local/bin/migrate
+
+# Copy go.mod and go.sum first to leverage Docker cache
+COPY go.mod go.sum ./
+
+# Download dependencies and install mockgen
+RUN go mod download && \
+    GOBIN=/usr/local/bin go install github.com/golang/mock/mockgen@v1.6.0
 
 # Copy the entire project
 COPY . .
 
-# Download dependencies
-RUN go mod download
-
 # Create a non-root user and set permissions
 RUN adduser -D -g '' appuser && \
-    chown -R appuser:appuser /app
+    chown -R appuser:appuser /app && \
+    mkdir -p /go && \
+    chown -R appuser:appuser /go
 
 # Switch to non-root user
 USER appuser
@@ -25,6 +31,11 @@ USER appuser
 RUN mkdir -p /app/tmp && \
     mkdir -p /app/docs && \
     chmod -R 755 /app/tmp
+
+# Set GO111MODULE explicitly
+ENV GO111MODULE=on
+ENV GOPATH=/go
+ENV PATH=$PATH:$GOPATH/bin
 
 # Expose port 8080
 EXPOSE 8080

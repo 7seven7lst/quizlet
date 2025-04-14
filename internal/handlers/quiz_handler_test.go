@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"net/http/test"
+	"net/http/httptest"
 	"quizlet/internal/models/quiz"
-	"quizlet/internal/service"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"quizlet/tests/mocks"
 	"gorm.io/gorm"
 )
 
@@ -44,7 +45,7 @@ func (m *MockQuizService) DeleteQuiz(id uint) error {
 	return args.Error(0)
 }
 
-func (m *MockQuizService) AddSelection(quizID uint, selection *quiz.QuizSelection) error {
+func (m *MockQuizService) AddSelection(quizID uint, selection quiz.QuizSelection) error {
 	args := m.Called(quizID, selection)
 	return args.Error(0)
 }
@@ -63,6 +64,7 @@ func TestCreateQuiz(t *testing.T) {
 		name           string
 		input          quiz.Quiz
 		userID         uint
+		mockSetup      func()
 		expectedStatus int
 		expectedBody   string
 	}{
@@ -70,55 +72,70 @@ func TestCreateQuiz(t *testing.T) {
 			name: "Success",
 			input: quiz.Quiz{
 				Question:      "Test Question",
-				QuizType:      quiz.QuizTypeMultipleChoice,
+				QuizType:      quiz.QuizTypeMultiChoice,
 				CorrectAnswer: "Test Answer",
 			},
-			userID:         1,
+			userID: 1,
+			mockSetup: func() {
+				mockQuizService.On("CreateQuiz", mock.MatchedBy(func(q *quiz.Quiz) bool {
+					return q.Question == "Test Question" &&
+						q.QuizType == quiz.QuizTypeMultiChoice &&
+						q.CorrectAnswer == "Test Answer" &&
+						q.CreatedByID == uint(1)
+				})).Return(nil).Once()
+			},
 			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"id":0,"created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z","deleted_at":null,"question":"Test Question","quiz_type":1,"correct_answer":"Test Answer","created_by_id":1,"selections":null}`,
+			expectedBody:   `{"id":0,"created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z","question":"Test Question","quiz_type":"multi_choice","correct_answer":"Test Answer","created_by_id":1}`,
 		},
 		{
 			name:           "Unauthorized",
 			input:          quiz.Quiz{},
 			userID:         0,
+			mockSetup:      func() {},
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   `{"error":"unauthorized"}`,
 		},
 		{
-			name: "Service Error",
+			name:   "Service Error",
 			input: quiz.Quiz{
 				Question:      "Test Question",
-				QuizType:      quiz.QuizTypeMultipleChoice,
+				QuizType:      quiz.QuizTypeMultiChoice,
 				CorrectAnswer: "Test Answer",
 			},
-			userID:         1,
+			userID: 1,
+			mockSetup: func() {
+				mockQuizService.On("CreateQuiz", mock.MatchedBy(func(q *quiz.Quiz) bool {
+					return q.Question == "Test Question" &&
+						q.QuizType == quiz.QuizTypeMultiChoice &&
+						q.CorrectAnswer == "Test Answer" &&
+						q.CreatedByID == uint(1)
+				})).Return(gorm.ErrInvalidDB).Once()
+			},
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"error":"gorm: invalid db"}`,
+			expectedBody:   `{"error":"invalid db"}`,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			w := test.NewRecorder()
+			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 
 			body, _ := json.Marshal(tc.input)
-			c.Request = test.NewRequest("POST", "/", bytes.NewBuffer(body))
+			c.Request = httptest.NewRequest("POST", "/", bytes.NewBuffer(body))
 
 			if tc.userID > 0 {
 				c.Set("userID", tc.userID)
 			}
 
-			if tc.name == "Service Error" {
-				mockQuizService.On("CreateQuiz", mock.Anything).Return(gorm.ErrInvalidDB)
-			} else {
-				mockQuizService.On("CreateQuiz", mock.Anything).Return(nil)
-			}
+			tc.mockSetup()
 
 			handler.CreateQuiz(c)
 
 			assert.Equal(t, tc.expectedStatus, w.Code)
 			assert.JSONEq(t, tc.expectedBody, w.Body.String())
+
+			mockQuizService.AssertExpectations(t)
 		})
 	}
 }
@@ -155,9 +172,9 @@ func TestGetQuiz(t *testing.T) {
 			mockService: func() {
 				mockQuizService.EXPECT().
 					GetQuizByID(uint(1)).
-					Return(&models.Quiz{
+					Return(&quiz.Quiz{
 						Question:      "What is the capital of France?",
-						QuizType:      models.QuizTypeSingleChoice,
+						QuizType:      quiz.QuizTypeSingleChoice,
 						CorrectAnswer: "Paris",
 						CreatedByID:   1,
 					}, nil)

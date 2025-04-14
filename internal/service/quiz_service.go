@@ -1,17 +1,20 @@
 package service
 
 import (
-	"quizlet/internal/models"
+	"quizlet/internal/models/quiz"
 	"quizlet/internal/repository"
 )
 
+// QuizSelection is a type alias for quiz.QuizSelection to ensure type compatibility
+type QuizSelection = quiz.QuizSelection
+
 type QuizService interface {
-	CreateQuiz(quiz *models.Quiz) error
-	GetQuizByID(id uint) (*models.Quiz, error)
-	GetQuizzesByUserID(userID uint) ([]*models.Quiz, error)
-	UpdateQuiz(quiz *models.Quiz) error
+	CreateQuiz(quiz *quiz.Quiz) error
+	GetQuizByID(id uint) (*quiz.Quiz, error)
+	GetQuizzesByUserID(userID uint) ([]*quiz.Quiz, error)
+	UpdateQuiz(quiz *quiz.Quiz) error
 	DeleteQuiz(id uint) error
-	AddSelection(quizID uint, selection *models.QuizSelection) error
+	AddSelection(quizID uint, selection QuizSelection) error
 	RemoveSelection(quizID uint, selectionID uint) error
 }
 
@@ -25,19 +28,19 @@ func NewQuizService(quizRepo repository.QuizRepository) QuizService {
 	}
 }
 
-func (s *quizService) CreateQuiz(quiz *models.Quiz) error {
+func (s *quizService) CreateQuiz(quiz *quiz.Quiz) error {
 	return s.quizRepo.Create(quiz)
 }
 
-func (s *quizService) GetQuizByID(id uint) (*models.Quiz, error) {
+func (s *quizService) GetQuizByID(id uint) (*quiz.Quiz, error) {
 	return s.quizRepo.FindByID(id)
 }
 
-func (s *quizService) GetQuizzesByUserID(userID uint) ([]*models.Quiz, error) {
+func (s *quizService) GetQuizzesByUserID(userID uint) ([]*quiz.Quiz, error) {
 	return s.quizRepo.FindByUserID(userID)
 }
 
-func (s *quizService) UpdateQuiz(quiz *models.Quiz) error {
+func (s *quizService) UpdateQuiz(quiz *quiz.Quiz) error {
 	// Verify the quiz exists
 	existing, err := s.quizRepo.FindByID(quiz.ID)
 	if err != nil {
@@ -56,16 +59,35 @@ func (s *quizService) DeleteQuiz(id uint) error {
 	return s.quizRepo.Delete(id)
 }
 
-func (s *quizService) AddSelection(quizID uint, selection *models.QuizSelection) error {
+func (s *quizService) AddSelection(quizID uint, selection QuizSelection) error {
 	// Verify the quiz exists
-	_, err := s.quizRepo.FindByID(quizID)
+	quiz, err := s.quizRepo.FindByID(quizID)
 	if err != nil {
 		return err
 	}
 
-	return s.quizRepo.AddSelection(quizID, selection)
+	// Add selection to quiz
+	if quiz.Selections == nil {
+		quiz.Selections = make([]QuizSelection, 0)
+	}
+	quiz.Selections = append(quiz.Selections, selection)
+	return s.quizRepo.Update(quiz)
 }
 
 func (s *quizService) RemoveSelection(quizID uint, selectionID uint) error {
-	return s.quizRepo.RemoveSelection(quizID, selectionID)
+	// Verify the quiz exists
+	quiz, err := s.quizRepo.FindByID(quizID)
+	if err != nil {
+		return err
+	}
+
+	// Remove selection from quiz
+	for i, selection := range quiz.Selections {
+		if selection.ID == selectionID {
+			quiz.Selections = append(quiz.Selections[:i], quiz.Selections[i+1:]...)
+			break
+		}
+	}
+
+	return s.quizRepo.Update(quiz)
 } 

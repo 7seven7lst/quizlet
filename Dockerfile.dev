@@ -1,4 +1,4 @@
-# Development stage
+# Build stage
 FROM golang:1.22-alpine
 
 WORKDIR /app
@@ -8,23 +8,26 @@ RUN apk add --no-cache gcc musl-dev curl && \
     curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz && \
     mv migrate /usr/local/bin/migrate
 
-# Install Swagger
-RUN go install github.com/swaggo/swag/cmd/swag@latest
-
-# Copy go mod and sum files
-COPY go.mod go.sum ./
+# Copy the entire project
+COPY . .
 
 # Download dependencies
 RUN go mod download
 
-# Copy source code
-COPY . .
+# Create a non-root user and set permissions
+RUN adduser -D -g '' appuser && \
+    chown -R appuser:appuser /app
 
-# Generate Swagger docs
-RUN swag init -g cmd/api/main.go
+# Switch to non-root user
+USER appuser
+
+# Create necessary directories with correct permissions
+RUN mkdir -p /app/tmp && \
+    mkdir -p /app/docs && \
+    chmod -R 755 /app/tmp
 
 # Expose port 8080
 EXPOSE 8080
 
 # Run the application
-CMD ["go", "run", "cmd/api/main.go"] 
+CMD ["go", "run", "./cmd/api/main.go"] 

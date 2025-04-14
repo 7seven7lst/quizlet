@@ -1,15 +1,15 @@
 package service
 
 import (
-	"quizlet/internal/models"
+	"quizlet/internal/models/quiz_suite"
 	"quizlet/internal/repository"
 )
 
 type QuizSuiteService interface {
-	CreateQuizSuite(quizSuite *models.QuizSuite) error
-	GetQuizSuiteByID(id uint) (*models.QuizSuite, error)
-	GetQuizSuitesByUserID(userID uint) ([]*models.QuizSuite, error)
-	UpdateQuizSuite(quizSuite *models.QuizSuite) error
+	CreateQuizSuite(quizSuite *quiz_suite.QuizSuite) error
+	GetQuizSuite(id uint) (*quiz_suite.QuizSuite, error)
+	GetUserQuizSuites(userID uint) ([]*quiz_suite.QuizSuite, error)
+	UpdateQuizSuite(quizSuite *quiz_suite.QuizSuite) error
 	DeleteQuizSuite(id uint) error
 	AddQuizToSuite(quizSuiteID uint, quizID uint) error
 	RemoveQuizFromSuite(quizSuiteID uint, quizID uint) error
@@ -27,19 +27,19 @@ func NewQuizSuiteService(quizSuiteRepo repository.QuizSuiteRepository, quizRepo 
 	}
 }
 
-func (s *quizSuiteService) CreateQuizSuite(quizSuite *models.QuizSuite) error {
+func (s *quizSuiteService) CreateQuizSuite(quizSuite *quiz_suite.QuizSuite) error {
 	return s.quizSuiteRepo.Create(quizSuite)
 }
 
-func (s *quizSuiteService) GetQuizSuiteByID(id uint) (*models.QuizSuite, error) {
+func (s *quizSuiteService) GetQuizSuite(id uint) (*quiz_suite.QuizSuite, error) {
 	return s.quizSuiteRepo.FindByID(id)
 }
 
-func (s *quizSuiteService) GetQuizSuitesByUserID(userID uint) ([]*models.QuizSuite, error) {
+func (s *quizSuiteService) GetUserQuizSuites(userID uint) ([]*quiz_suite.QuizSuite, error) {
 	return s.quizSuiteRepo.FindByUserID(userID)
 }
 
-func (s *quizSuiteService) UpdateQuizSuite(quizSuite *models.QuizSuite) error {
+func (s *quizSuiteService) UpdateQuizSuite(quizSuite *quiz_suite.QuizSuite) error {
 	// Verify the quiz suite exists
 	existing, err := s.quizSuiteRepo.FindByID(quizSuite.ID)
 	if err != nil {
@@ -59,19 +59,35 @@ func (s *quizSuiteService) DeleteQuizSuite(id uint) error {
 
 func (s *quizSuiteService) AddQuizToSuite(quizSuiteID uint, quizID uint) error {
 	// Verify both quiz suite and quiz exist
-	_, err := s.quizSuiteRepo.FindByID(quizSuiteID)
+	quizSuite, err := s.quizSuiteRepo.FindByID(quizSuiteID)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.quizRepo.FindByID(quizID)
+	quiz, err := s.quizRepo.FindByID(quizID)
 	if err != nil {
 		return err
 	}
 
-	return s.quizSuiteRepo.AddQuiz(quizSuiteID, quizID)
+	// Add quiz to suite
+	quizSuite.Quizzes = append(quizSuite.Quizzes, quiz)
+	return s.quizSuiteRepo.Update(quizSuite)
 }
 
 func (s *quizSuiteService) RemoveQuizFromSuite(quizSuiteID uint, quizID uint) error {
-	return s.quizSuiteRepo.RemoveQuiz(quizSuiteID, quizID)
+	// Verify quiz suite exists
+	quizSuite, err := s.quizSuiteRepo.FindByID(quizSuiteID)
+	if err != nil {
+		return err
+	}
+
+	// Remove quiz from suite
+	for i, quiz := range quizSuite.Quizzes {
+		if quiz.ID == quizID {
+			quizSuite.Quizzes = append(quizSuite.Quizzes[:i], quizSuite.Quizzes[i+1:]...)
+			break
+		}
+	}
+
+	return s.quizSuiteRepo.Update(quizSuite)
 } 

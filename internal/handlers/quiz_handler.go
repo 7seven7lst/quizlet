@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"net/http"
-	"quizlet/internal/models"
+	"quizlet/internal/models/quiz"
 	"quizlet/internal/service"
 	"strconv"
 
@@ -24,16 +24,16 @@ func NewQuizHandler(quizService service.QuizService) *QuizHandler {
 // @Tags quizzes
 // @Accept json
 // @Produce json
-// @Param quiz body models.Quiz true "Quiz information"
-// @Success 201 {object} models.Quiz
+// @Param quiz body quiz.Quiz true "Quiz information"
+// @Success 201 {object} quiz.Quiz
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
 // @Router /quizzes [post]
 func (h *QuizHandler) CreateQuiz(c *gin.Context) {
-	var quiz models.Quiz
-	if err := c.ShouldBindJSON(&quiz); err != nil {
+	var q quiz.Quiz
+	if err := c.ShouldBindJSON(&q); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -44,14 +44,14 @@ func (h *QuizHandler) CreateQuiz(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	quiz.CreatedByID = userID.(uint)
+	q.CreatedByID = userID.(uint)
 
-	if err := h.quizService.CreateQuiz(&quiz); err != nil {
+	if err := h.quizService.CreateQuiz(&q); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, quiz)
+	c.JSON(http.StatusCreated, q)
 }
 
 // @Summary Get a quiz by ID
@@ -59,7 +59,7 @@ func (h *QuizHandler) CreateQuiz(c *gin.Context) {
 // @Tags quizzes
 // @Produce json
 // @Param id path int true "Quiz ID"
-// @Success 200 {object} models.Quiz
+// @Success 200 {object} quiz.Quiz
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /quizzes/{id} [get]
@@ -83,7 +83,7 @@ func (h *QuizHandler) GetQuiz(c *gin.Context) {
 // @Description Get all quizzes created by the authenticated user
 // @Tags quizzes
 // @Produce json
-// @Success 200 {array} models.Quiz
+// @Success 200 {array} quiz.Quiz
 // @Failure 401 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
@@ -110,8 +110,8 @@ func (h *QuizHandler) GetUserQuizzes(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Quiz ID"
-// @Param quiz body models.Quiz true "Quiz information"
-// @Success 200 {object} models.Quiz
+// @Param quiz body quiz.Quiz true "Quiz information"
+// @Success 200 {object} quiz.Quiz
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
@@ -123,7 +123,7 @@ func (h *QuizHandler) UpdateQuiz(c *gin.Context) {
 		return
 	}
 
-	var quiz models.Quiz
+	var quiz quiz.Quiz
 	if err := c.ShouldBindJSON(&quiz); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -164,36 +164,37 @@ func (h *QuizHandler) DeleteQuiz(c *gin.Context) {
 }
 
 // @Summary Add a selection to a quiz
-// @Description Add a new selection to an existing quiz
+// @Description Add a new selection to a quiz
 // @Tags quizzes
 // @Accept json
 // @Produce json
 // @Param id path int true "Quiz ID"
-// @Param selection body models.QuizSelection true "Selection information"
-// @Success 201 {object} models.QuizSelection
+// @Param selection body quiz.QuizSelection true "Selection object"
+// @Success 200 {object} quiz.Quiz
 // @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
-// @Security BearerAuth
 // @Router /quizzes/{id}/selections [post]
 func (h *QuizHandler) AddSelection(c *gin.Context) {
-	quizID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid quiz id"})
 		return
 	}
 
-	var selection models.QuizSelection
+	var selection quiz.QuizSelection
 	if err := c.ShouldBindJSON(&selection); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := h.quizService.AddSelection(uint(quizID), &selection); err != nil {
+	if err := h.quizService.AddSelection(uint(id), selection); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, selection)
+	c.JSON(http.StatusOK, gin.H{"message": "selection added successfully"})
 }
 
 // @Summary Remove a selection from a quiz
@@ -226,4 +227,28 @@ func (h *QuizHandler) RemoveSelection(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "selection removed successfully"})
+}
+
+// @Summary Get all quizzes
+// @Description Get all quizzes
+// @Tags quizzes
+// @Produce json
+// @Success 200 {array} quiz.Quiz
+// @Failure 500 {object} map[string]string
+// @Router /quizzes [get]
+func (h *QuizHandler) GetQuizzes(c *gin.Context) {
+	// Get user ID from context (assuming you have middleware that sets this)
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	quizzes, err := h.quizService.GetQuizzesByUserID(userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, quizzes)
 } 

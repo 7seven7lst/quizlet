@@ -87,38 +87,25 @@ func main() {
 	api := r.Group("/api")
 	{
 		// User routes
-		users := api.Group("/users")
-		{
-			users.POST("/", userHandler.CreateUser)
-			users.GET("/:id", userHandler.GetUser)
-			users.PUT("/:id", userHandler.UpdateUser)
-			users.DELETE("/:id", userHandler.DeleteUser)
-			users.POST("/login", userHandler.Login)
-		}
+		api.POST("/users/login", userHandler.Login)
+		api.POST("/users", userHandler.CreateUser)
+		api.GET("/users/:id", userHandler.GetUser)
+		api.PUT("/users/:id", userHandler.UpdateUser)
+		api.DELETE("/users/:id", userHandler.DeleteUser)
 
 		// Quiz routes
-		quizzes := api.Group("/quizzes")
-		{
-			quizzes.POST("/", quizHandler.CreateQuiz)
-			quizzes.GET("/:id", quizHandler.GetQuiz)
-			quizzes.PUT("/:id", quizHandler.UpdateQuiz)
-			quizzes.DELETE("/:id", quizHandler.DeleteQuiz)
-			quizzes.GET("/user", quizHandler.GetUserQuizzes)
-			quizzes.POST("/:id/selections", quizHandler.AddSelection)
-			quizzes.DELETE("/:id/selections/:selectionId", quizHandler.RemoveSelection)
-		}
+		api.POST("/quizzes", quizHandler.CreateQuiz)
+		api.GET("/quizzes", quizHandler.GetQuizzes)
+		api.GET("/quizzes/:id", quizHandler.GetQuiz)
+		api.PUT("/quizzes/:id", quizHandler.UpdateQuiz)
+		api.DELETE("/quizzes/:id", quizHandler.DeleteQuiz)
 
 		// Quiz Suite routes
-		quizSuites := api.Group("/quiz-suites")
-		{
-			quizSuites.POST("/", quizSuiteHandler.CreateQuizSuite)
-			quizSuites.GET("/:id", quizSuiteHandler.GetQuizSuite)
-			quizSuites.PUT("/:id", quizSuiteHandler.UpdateQuizSuite)
-			quizSuites.DELETE("/:id", quizSuiteHandler.DeleteQuizSuite)
-			quizSuites.GET("/user", quizSuiteHandler.GetUserQuizSuites)
-			quizSuites.POST("/:id/quizzes/:quizId", quizSuiteHandler.AddQuizToSuite)
-			quizSuites.DELETE("/:id/quizzes/:quizId", quizSuiteHandler.RemoveQuizFromSuite)
-		}
+		api.POST("/quiz-suites", quizSuiteHandler.CreateQuizSuite)
+		api.GET("/quiz-suites", quizSuiteHandler.GetQuizSuites)
+		api.GET("/quiz-suites/:id", quizSuiteHandler.GetQuizSuite)
+		api.PUT("/quiz-suites/:id", quizSuiteHandler.UpdateQuizSuite)
+		api.DELETE("/quiz-suites/:id", quizSuiteHandler.DeleteQuizSuite)
 	}
 
 	log.Println("Server starting on :8080")

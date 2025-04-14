@@ -4,139 +4,121 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
-	"quizlet/internal/models"
-	"quizlet/tests/mocks"
+	"net/http/test"
+	"quizlet/internal/models/quiz"
+	"quizlet/internal/service"
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 )
 
+type MockQuizService struct {
+	mock.Mock
+}
+
+func (m *MockQuizService) CreateQuiz(quiz *quiz.Quiz) error {
+	args := m.Called(quiz)
+	return args.Error(0)
+}
+
+func (m *MockQuizService) GetQuizByID(id uint) (*quiz.Quiz, error) {
+	args := m.Called(id)
+	return args.Get(0).(*quiz.Quiz), args.Error(1)
+}
+
+func (m *MockQuizService) GetQuizzesByUserID(userID uint) ([]*quiz.Quiz, error) {
+	args := m.Called(userID)
+	return args.Get(0).([]*quiz.Quiz), args.Error(1)
+}
+
+func (m *MockQuizService) UpdateQuiz(quiz *quiz.Quiz) error {
+	args := m.Called(quiz)
+	return args.Error(0)
+}
+
+func (m *MockQuizService) DeleteQuiz(id uint) error {
+	args := m.Called(id)
+	return args.Error(0)
+}
+
+func (m *MockQuizService) AddSelection(quizID uint, selection *quiz.QuizSelection) error {
+	args := m.Called(quizID, selection)
+	return args.Error(0)
+}
+
+func (m *MockQuizService) RemoveSelection(quizID uint, selectionID uint) error {
+	args := m.Called(quizID, selectionID)
+	return args.Error(0)
+}
+
 func TestCreateQuiz(t *testing.T) {
-	// Set Gin to test mode
 	gin.SetMode(gin.TestMode)
-
-	// Create a new controller for mocking
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	// Create mock quiz service
-	mockQuizService := mocks.NewMockQuizService(ctrl)
-
-	// Create quiz handler with mock service
+	mockQuizService := new(MockQuizService)
 	handler := NewQuizHandler(mockQuizService)
 
-	// Test cases
-	tests := []struct {
+	testCases := []struct {
 		name           string
-		inputQuiz      models.Quiz
-		setupAuth      func(*gin.Context)
-		mockService    func()
+		input          quiz.Quiz
+		userID         uint
 		expectedStatus int
-		expectedBody   map[string]interface{}
+		expectedBody   string
 	}{
 		{
-			name: "Successful quiz creation",
-			inputQuiz: models.Quiz{
-				Question:      "What is the capital of France?",
-				QuizType:      models.QuizTypeSingleChoice,
-				CorrectAnswer: "Paris",
+			name: "Success",
+			input: quiz.Quiz{
+				Question:      "Test Question",
+				QuizType:      quiz.QuizTypeMultipleChoice,
+				CorrectAnswer: "Test Answer",
 			},
-			setupAuth: func(c *gin.Context) {
-				c.Set("userID", uint(1))
-			},
-			mockService: func() {
-				mockQuizService.EXPECT().
-					CreateQuiz(gomock.Any()).
-					Return(nil)
-			},
+			userID:         1,
 			expectedStatus: http.StatusCreated,
-			expectedBody: map[string]interface{}{
-				"question":       "What is the capital of France?",
-				"quiz_type":      "single_choice",
-				"correct_answer": "Paris",
-				"created_by_id":  float64(1),
-			},
+			expectedBody:   `{"id":0,"created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z","deleted_at":null,"question":"Test Question","quiz_type":1,"correct_answer":"Test Answer","created_by_id":1,"selections":null}`,
 		},
 		{
-			name: "Unauthorized - no user ID",
-			inputQuiz: models.Quiz{
-				Question:      "What is the capital of France?",
-				QuizType:      models.QuizTypeSingleChoice,
-				CorrectAnswer: "Paris",
-			},
-			setupAuth: func(c *gin.Context) {
-				// Don't set userID
-			},
-			mockService: func() {
-				// No service calls expected
-			},
+			name:           "Unauthorized",
+			input:          quiz.Quiz{},
+			userID:         0,
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody: map[string]interface{}{
-				"error": "unauthorized",
-			},
+			expectedBody:   `{"error":"unauthorized"}`,
 		},
 		{
-			name: "Service error",
-			inputQuiz: models.Quiz{
-				Question:      "What is the capital of France?",
-				QuizType:      models.QuizTypeSingleChoice,
-				CorrectAnswer: "Paris",
+			name: "Service Error",
+			input: quiz.Quiz{
+				Question:      "Test Question",
+				QuizType:      quiz.QuizTypeMultipleChoice,
+				CorrectAnswer: "Test Answer",
 			},
-			setupAuth: func(c *gin.Context) {
-				c.Set("userID", uint(1))
-			},
-			mockService: func() {
-				mockQuizService.EXPECT().
-					CreateQuiz(gomock.Any()).
-					Return(gorm.ErrInvalidDB)
-			},
+			userID:         1,
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody: map[string]interface{}{
-				"error": gorm.ErrInvalidDB.Error(),
-			},
+			expectedBody:   `{"error":"gorm: invalid db"}`,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Setup mock service expectations
-			tt.mockService()
-
-			// Create a new Gin context
-			w := httptest.NewRecorder()
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := test.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 
-			// Create request body
-			body, _ := json.Marshal(tt.inputQuiz)
-			c.Request = httptest.NewRequest(http.MethodPost, "/quizzes", bytes.NewBuffer(body))
-			c.Request.Header.Set("Content-Type", "application/json")
+			body, _ := json.Marshal(tc.input)
+			c.Request = test.NewRequest("POST", "/", bytes.NewBuffer(body))
 
-			// Setup auth context
-			tt.setupAuth(c)
+			if tc.userID > 0 {
+				c.Set("userID", tc.userID)
+			}
 
-			// Call the handler
+			if tc.name == "Service Error" {
+				mockQuizService.On("CreateQuiz", mock.Anything).Return(gorm.ErrInvalidDB)
+			} else {
+				mockQuizService.On("CreateQuiz", mock.Anything).Return(nil)
+			}
+
 			handler.CreateQuiz(c)
 
-			// Assert response
-			assert.Equal(t, tt.expectedStatus, w.Code)
-
-			var response map[string]interface{}
-			err := json.Unmarshal(w.Body.Bytes(), &response)
-			assert.NoError(t, err)
-
-			// For successful creation, check specific fields
-			if tt.expectedStatus == http.StatusCreated {
-				assert.Equal(t, tt.expectedBody["question"], response["question"])
-				assert.Equal(t, tt.expectedBody["quiz_type"], response["quiz_type"])
-				assert.Equal(t, tt.expectedBody["correct_answer"], response["correct_answer"])
-				assert.Equal(t, tt.expectedBody["created_by_id"], response["created_by_id"])
-			} else {
-				assert.Equal(t, tt.expectedBody["error"], response["error"])
-			}
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.JSONEq(t, tc.expectedBody, w.Body.String())
 		})
 	}
 }

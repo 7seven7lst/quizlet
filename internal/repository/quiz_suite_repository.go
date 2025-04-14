@@ -1,19 +1,17 @@
 package repository
 
 import (
-	"quizlet/internal/models"
+	"quizlet/internal/models/quiz_suite"
 
 	"gorm.io/gorm"
 )
 
 type QuizSuiteRepository interface {
-	Create(quizSuite *models.QuizSuite) error
-	FindByID(id uint) (*models.QuizSuite, error)
-	FindByUserID(userID uint) ([]*models.QuizSuite, error)
-	Update(quizSuite *models.QuizSuite) error
+	Create(quizSuite *quiz_suite.QuizSuite) error
+	FindByID(id uint) (*quiz_suite.QuizSuite, error)
+	FindByUserID(userID uint) ([]*quiz_suite.QuizSuite, error)
+	Update(quizSuite *quiz_suite.QuizSuite) error
 	Delete(id uint) error
-	AddQuiz(quizSuiteID uint, quizID uint) error
-	RemoveQuiz(quizSuiteID uint, quizID uint) error
 }
 
 type quizSuiteRepository struct {
@@ -24,12 +22,12 @@ func NewQuizSuiteRepository(db *gorm.DB) QuizSuiteRepository {
 	return &quizSuiteRepository{db: db}
 }
 
-func (r *quizSuiteRepository) Create(quizSuite *models.QuizSuite) error {
+func (r *quizSuiteRepository) Create(quizSuite *quiz_suite.QuizSuite) error {
 	return r.db.Create(quizSuite).Error
 }
 
-func (r *quizSuiteRepository) FindByID(id uint) (*models.QuizSuite, error) {
-	var quizSuite models.QuizSuite
+func (r *quizSuiteRepository) FindByID(id uint) (*quiz_suite.QuizSuite, error) {
+	var quizSuite quiz_suite.QuizSuite
 	err := r.db.Preload("Quizzes").Preload("CreatedBy").First(&quizSuite, id).Error
 	if err != nil {
 		return nil, err
@@ -37,8 +35,8 @@ func (r *quizSuiteRepository) FindByID(id uint) (*models.QuizSuite, error) {
 	return &quizSuite, nil
 }
 
-func (r *quizSuiteRepository) FindByUserID(userID uint) ([]*models.QuizSuite, error) {
-	var quizSuites []*models.QuizSuite
+func (r *quizSuiteRepository) FindByUserID(userID uint) ([]*quiz_suite.QuizSuite, error) {
+	var quizSuites []*quiz_suite.QuizSuite
 	err := r.db.Where("created_by_id = ?", userID).Preload("Quizzes").Find(&quizSuites).Error
 	if err != nil {
 		return nil, err
@@ -46,18 +44,10 @@ func (r *quizSuiteRepository) FindByUserID(userID uint) ([]*models.QuizSuite, er
 	return quizSuites, nil
 }
 
-func (r *quizSuiteRepository) Update(quizSuite *models.QuizSuite) error {
+func (r *quizSuiteRepository) Update(quizSuite *quiz_suite.QuizSuite) error {
 	return r.db.Save(quizSuite).Error
 }
 
 func (r *quizSuiteRepository) Delete(id uint) error {
-	return r.db.Delete(&models.QuizSuite{}, id).Error
-}
-
-func (r *quizSuiteRepository) AddQuiz(quizSuiteID uint, quizID uint) error {
-	return r.db.Model(&models.QuizSuite{ID: quizSuiteID}).Association("Quizzes").Append(&models.Quiz{ID: quizID})
-}
-
-func (r *quizSuiteRepository) RemoveQuiz(quizSuiteID uint, quizID uint) error {
-	return r.db.Model(&models.QuizSuite{ID: quizSuiteID}).Association("Quizzes").Delete(&models.Quiz{ID: quizID})
+	return r.db.Delete(&quiz_suite.QuizSuite{}, id).Error
 } 

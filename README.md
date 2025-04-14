@@ -95,6 +95,8 @@ You can run tests in two ways:
 
 2. **In Docker Container**:
    ```bash
+   # nuke db
+   docker volume rm quizlet_postgres-data
    # Start the development container
    docker-compose up -d api-dev
 

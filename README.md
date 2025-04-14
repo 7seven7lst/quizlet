@@ -76,9 +76,71 @@ The API documentation is available through Swagger UI and ReDoc:
 
 ### Running Tests
 
-```bash
-go test ./...
-```
+You can run tests in two ways:
+
+1. **Locally**:
+   ```bash
+   # Run tests
+   go test ./...
+
+   # Run tests with coverage report
+   go test -coverprofile=coverage.txt -covermode=atomic ./...
+   
+   # View coverage in browser
+   go tool cover -html=coverage.txt
+   
+   # View coverage in terminal
+   go tool cover -func=coverage.txt
+   ```
+
+2. **In Docker Container**:
+   ```bash
+   # Start the development container
+   docker-compose up -d api-dev
+
+   # Run all tests
+   docker-compose exec api-dev go test ./...
+
+   # Run tests with coverage
+   docker-compose exec api-dev go test -cover ./...
+
+   # Run tests with detailed coverage report
+   docker-compose exec api-dev go test -coverprofile=coverage.txt -covermode=atomic ./...
+   docker-compose exec api-dev go tool cover -func=coverage.txt
+   ```
+
+   Note: The development container (`api-dev`) includes the Go toolchain and mounts your local code directory, so any changes to your code or tests will be immediately reflected.
+
+### Continuous Integration
+
+The project uses GitHub Actions for continuous integration. The test suite runs automatically on:
+- Every push to main/master branch
+- Every pull request to main/master branch
+
+The CI pipeline:
+1. Sets up a PostgreSQL database
+2. Installs Go and project dependencies
+3. Runs the entire test suite with race condition detection
+4. Generates and uploads code coverage reports to Codecov
+
+#### Code Coverage Requirements
+
+The project maintains strict code coverage requirements:
+- Overall project coverage must be at least 80%
+- New code in pull requests must have at least 80% coverage
+- Coverage is only measured for code in the `internal` directory
+- Test files, mocks, and generated code are excluded from coverage calculations
+- Coverage reports are available on [Codecov](https://codecov.io)
+
+You can view:
+- Test results in the "Actions" tab of the GitHub repository
+- Code coverage reports and trends on Codecov
+- Line-by-line coverage annotations in pull requests
+
+To skip CI for a particular commit, include `[skip ci]` in your commit message.
+
+[![Test Suite](https://github.com/{username}/{repo}/actions/workflows/test.yml/badge.svg)](https://github.com/{username}/{repo}/actions)
+[![codecov](https://codecov.io/gh/{username}/{repo}/branch/main/graph/badge.svg)](https://codecov.io/gh/{username}/{repo})
 
 ### Database Migrations
 

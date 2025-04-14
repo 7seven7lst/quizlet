@@ -22,6 +22,26 @@ services:
     networks:
       - quizlet-network
 
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=quizlet
+      - DB_PORT=5432
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - quizlet-network
+
   postgres:
     image: postgres
     platform: linux/amd64

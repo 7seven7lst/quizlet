@@ -1,0 +1,30 @@
+# Development stage
+FROM golang:1.22-alpine
+
+WORKDIR /app
+
+# Install build dependencies and migrate tool
+RUN apk add --no-cache gcc musl-dev curl && \
+    curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz && \
+    mv migrate /usr/local/bin/migrate
+
+# Install Swagger
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
+# Copy go mod and sum files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Generate Swagger docs
+RUN swag init -g cmd/api/main.go
+
+# Expose port 8080
+EXPOSE 8080
+
+# Run the application
+CMD ["go", "run", "cmd/api/main.go"] 

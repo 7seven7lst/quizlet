@@ -14,6 +14,7 @@ import (
 	"quizlet/internal/service"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"quizlet/internal/auth"
 )
 
 // @title           Quizlet API
@@ -93,19 +94,29 @@ func main() {
 		api.PUT("/users/:id", userHandler.UpdateUser)
 		api.DELETE("/users/:id", userHandler.DeleteUser)
 
-		// Quiz routes
-		api.POST("/quizzes", quizHandler.CreateQuiz)
-		api.GET("/quizzes", quizHandler.GetQuizzes)
-		api.GET("/quizzes/:id", quizHandler.GetQuiz)
-		api.PUT("/quizzes/:id", quizHandler.UpdateQuiz)
-		api.DELETE("/quizzes/:id", quizHandler.DeleteQuiz)
+		// Protected routes
+		protected := api.Group("")
+		protected.Use(auth.AuthMiddleware())
+		{
+			// Quiz routes
+			quizRoutes := api.Group("/quizzes")
+			{
+				quizRoutes.POST("", quizHandler.CreateQuiz)
+				quizRoutes.GET("/:id", quizHandler.GetQuiz)
+				quizRoutes.PUT("/:id", quizHandler.UpdateQuiz)
+				quizRoutes.DELETE("/:id", quizHandler.DeleteQuiz)
+				quizRoutes.POST("/:id/selections", quizHandler.AddSelection)
+				quizRoutes.DELETE("/:id/selections/:selectionId", quizHandler.RemoveSelection)
+				quizRoutes.GET("/user", quizHandler.GetQuizzes)
+			}
 
-		// Quiz Suite routes
-		api.POST("/quiz-suites", quizSuiteHandler.CreateQuizSuite)
-		api.GET("/quiz-suites", quizSuiteHandler.GetQuizSuites)
-		api.GET("/quiz-suites/:id", quizSuiteHandler.GetQuizSuite)
-		api.PUT("/quiz-suites/:id", quizSuiteHandler.UpdateQuizSuite)
-		api.DELETE("/quiz-suites/:id", quizSuiteHandler.DeleteQuizSuite)
+			// Quiz Suite routes
+			protected.POST("/quiz-suites", quizSuiteHandler.CreateQuizSuite)
+			protected.GET("/quiz-suites", quizSuiteHandler.GetQuizSuites)
+			protected.GET("/quiz-suites/:id", quizSuiteHandler.GetQuizSuite)
+			protected.PUT("/quiz-suites/:id", quizSuiteHandler.UpdateQuizSuite)
+			protected.DELETE("/quiz-suites/:id", quizSuiteHandler.DeleteQuizSuite)
+		}
 	}
 
 	log.Println("Server starting on :8080")

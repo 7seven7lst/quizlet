@@ -22,7 +22,6 @@ type Quiz struct {
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
 	Question      string         `gorm:"not null" json:"question"`
 	QuizType      QuizType       `gorm:"not null" json:"quiz_type"`
-	CorrectAnswer string         `gorm:"not null" json:"correct_answer"`
 	CreatedByID   uint           `gorm:"not null" json:"created_by_id"`
 	CreatedBy     *user.User     `json:"created_by,omitempty"`
 	Selections    []QuizSelection `gorm:"foreignKey:QuizID;constraint:OnDelete:CASCADE" json:"selections,omitempty"`

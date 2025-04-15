@@ -5,39 +5,50 @@ definitions:
       error:
         type: string
     type: object
+  handlers.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.LoginResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/user.User'
+    type: object
   handlers.SuccessResponse:
     properties:
       message:
         type: string
     type: object
-  models.Quiz:
+  quiz.Quiz:
     properties:
-      correct_answer:
-        type: string
       created_at:
         type: string
       created_by:
-        $ref: '#/definitions/models.User'
+        $ref: '#/definitions/user.User'
       created_by_id:
         type: integer
       id:
         type: integer
       question:
         type: string
-      quiz_suites:
-        items:
-          $ref: '#/definitions/models.QuizSuite'
-        type: array
       quiz_type:
-        $ref: '#/definitions/models.QuizType'
+        $ref: '#/definitions/quiz.QuizType'
       selections:
         items:
-          $ref: '#/definitions/models.QuizSelection'
+          $ref: '#/definitions/quiz.QuizSelection'
         type: array
       updated_at:
         type: string
     type: object
-  models.QuizSelection:
+  quiz.QuizSelection:
     properties:
       created_at:
         type: string
@@ -46,7 +57,7 @@ definitions:
       is_correct:
         type: boolean
       quiz:
-        $ref: '#/definitions/models.Quiz'
+        $ref: '#/definitions/quiz.Quiz'
       quiz_id:
         type: integer
       selection_text:
@@ -54,28 +65,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  models.QuizSuite:
-    properties:
-      created_at:
-        type: string
-      created_by:
-        $ref: '#/definitions/models.User'
-      created_by_id:
-        type: integer
-      description:
-        type: string
-      id:
-        type: integer
-      quizzes:
-        items:
-          $ref: '#/definitions/models.Quiz'
-        type: array
-      title:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  models.QuizType:
+  quiz.QuizType:
     enum:
     - single_choice
     - multi_choice
@@ -85,7 +75,9 @@ definitions:
     - QuizTypeSingleChoice
     - QuizTypeMultiChoice
     - QuizTypeTrueFalse
-  models.User:
+  quiz_suite.QuizSuite:
+    type: object
+  user.User:
     properties:
       created_at:
         type: string
@@ -93,14 +85,8 @@ definitions:
         type: string
       id:
         type: integer
-      quiz_suites:
-        items:
-          $ref: '#/definitions/models.QuizSuite'
-        type: array
-      quizzes:
-        items:
-          $ref: '#/definitions/models.Quiz'
-        type: array
+      password:
+        type: string
       updated_at:
         type: string
       username:
@@ -130,7 +116,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.QuizSuite'
+              $ref: '#/definitions/quiz_suite.QuizSuite'
             type: array
         "401":
           description: Unauthorized
@@ -151,14 +137,14 @@ paths:
         name: quiz_suite
         required: true
         schema:
-          $ref: '#/definitions/models.QuizSuite'
+          $ref: '#/definitions/quiz_suite.QuizSuite'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.QuizSuite'
+            $ref: '#/definitions/quiz_suite.QuizSuite'
         "400":
           description: Bad Request
           schema:
@@ -174,7 +160,7 @@ paths:
       - quiz-suites
   /quiz-suites/{id}:
     delete:
-      description: Delete an existing quiz suite by its ID
+      description: Delete a quiz suite by its ID
       parameters:
       - description: Quiz Suite ID
         in: path
@@ -188,10 +174,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/handlers.SuccessResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
         "404":
           description: Not Found
           schema:
@@ -215,11 +197,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.QuizSuite'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
+            $ref: '#/definitions/quiz_suite.QuizSuite'
         "404":
           description: Not Found
           schema:
@@ -244,20 +222,16 @@ paths:
         name: quiz_suite
         required: true
         schema:
-          $ref: '#/definitions/models.QuizSuite'
+          $ref: '#/definitions/quiz_suite.QuizSuite'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.QuizSuite'
+            $ref: '#/definitions/quiz_suite.QuizSuite'
         "400":
           description: Bad Request
-          schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
-        "401":
-          description: Unauthorized
           schema:
             $ref: '#/definitions/handlers.ErrorResponse'
         "404":
@@ -269,6 +243,468 @@ paths:
       summary: Update a quiz suite
       tags:
       - quiz-suites
+  /quizzes:
+    get:
+      description: Get all quizzes
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/quiz.Quiz'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all quizzes
+      tags:
+      - quizzes
+    post:
+      consumes:
+      - application/json
+      description: Create a new quiz with the provided information
+      parameters:
+      - description: Quiz information
+        in: body
+        name: quiz
+        required: true
+        schema:
+          $ref: '#/definitions/quiz.Quiz'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/quiz.Quiz'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new quiz
+      tags:
+      - quizzes
+  /quizzes/{id}:
+    delete:
+      description: Delete a quiz by quiz ID
+      parameters:
+      - description: Quiz ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a quiz
+      tags:
+      - quizzes
+    get:
+      description: Get quiz information by quiz ID
+      parameters:
+      - description: Quiz ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/quiz.Quiz'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a quiz by ID
+      tags:
+      - quizzes
+    put:
+      consumes:
+      - application/json
+      description: Update quiz information by quiz ID
+      parameters:
+      - description: Quiz ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Quiz information
+        in: body
+        name: quiz
+        required: true
+        schema:
+          $ref: '#/definitions/quiz.Quiz'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/quiz.Quiz'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a quiz
+      tags:
+      - quizzes
+  /quizzes/{id}/selections:
+    post:
+      consumes:
+      - application/json
+      description: Add a new selection to a quiz
+      parameters:
+      - description: Quiz ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Selection object
+        in: body
+        name: selection
+        required: true
+        schema:
+          $ref: '#/definitions/quiz.QuizSelection'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/quiz.Quiz'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add a selection to a quiz
+      tags:
+      - quizzes
+  /quizzes/{id}/selections/{selectionId}:
+    delete:
+      description: Remove a selection from an existing quiz
+      parameters:
+      - description: Quiz ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Selection ID
+        in: path
+        name: selectionId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove a selection from a quiz
+      tags:
+      - quizzes
+  /quizzes/user:
+    get:
+      description: Get all quizzes created by the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/quiz.Quiz'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user's quizzes
+      tags:
+      - quizzes
+  /users:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with the provided information
+      parameters:
+      - description: User information
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/user.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new user
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      description: Delete a user by user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a user
+      tags:
+      - users
+    get:
+      description: Get user information by user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a user by ID
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update user information by user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User information
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/user.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a user
+      tags:
+      - users
+  /users/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - users
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

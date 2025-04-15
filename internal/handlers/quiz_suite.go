@@ -76,6 +76,7 @@ func GetQuizSuites(c *gin.Context) {
 // @Param        id  path  int  true  "Quiz Suite ID"
 // @Success      200  {object}  quiz_suite.QuizSuite
 // @Failure      404  {object}  ErrorResponse
+// @Security     BearerAuth
 // @Router       /quiz-suites/{id} [get]
 func GetQuizSuite(c *gin.Context) {
 	id := c.Param("id")

@@ -6,6 +6,7 @@ toolchain go1.22.12
 
 require (
 	github.com/gin-gonic/gin v1.10.0
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang/mock v1.6.0
 	github.com/stretchr/testify v1.9.0
 	github.com/swaggo/files v1.0.1

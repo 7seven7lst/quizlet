@@ -41,17 +41,13 @@ func (s *quizService) GetQuizzesByUserID(userID uint) ([]*quiz.Quiz, error) {
 }
 
 func (s *quizService) UpdateQuiz(quiz *quiz.Quiz) error {
-	// Verify the quiz exists
 	existing, err := s.quizRepo.FindByID(quiz.ID)
 	if err != nil {
 		return err
 	}
 
-	// Only allow updating certain fields
 	existing.Question = quiz.Question
 	existing.QuizType = quiz.QuizType
-	existing.CorrectAnswer = quiz.CorrectAnswer
-
 	return s.quizRepo.Update(existing)
 }
 

@@ -108,6 +108,15 @@ func (h *QuizSuiteHandler) GetQuizSuites(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"quiz_suites": quizSuites})
 }
 
+// @Summary Get a quiz suite by ID
+// @Description Retrieve a specific quiz suite by its ID
+// @Tags quiz-suites
+// @Produce json
+// @Param id path int true "Quiz Suite ID"
+// @Success 200 {object} quiz_suite.QuizSuite
+// @Failure 404 {object} ErrorResponse
+// @Security BearerAuth
+// @Router /quiz-suites/{id} [get]
 func (h *QuizSuiteHandler) GetQuizSuite(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -149,6 +158,18 @@ func (h *QuizSuiteHandler) GetUserQuizSuites(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"quiz_suites": quizSuites})
 }
 
+// @Summary Update a quiz suite
+// @Description Update an existing quiz suite with the provided details
+// @Tags quiz-suites
+// @Accept json
+// @Produce json
+// @Param id path int true "Quiz Suite ID"
+// @Param quiz_suite body quiz_suite.QuizSuite true "Quiz Suite object"
+// @Success 200 {object} quiz_suite.QuizSuite
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Security BearerAuth
+// @Router /quiz-suites/{id} [put]
 func (h *QuizSuiteHandler) UpdateQuizSuite(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -187,6 +208,15 @@ func (h *QuizSuiteHandler) UpdateQuizSuite(c *gin.Context) {
 	c.JSON(http.StatusOK, updateQS)
 }
 
+// @Summary Delete a quiz suite
+// @Description Delete a quiz suite by its ID
+// @Tags quiz-suites
+// @Produce json
+// @Param id path int true "Quiz Suite ID"
+// @Success 200 {object} SuccessResponse
+// @Failure 404 {object} ErrorResponse
+// @Security BearerAuth
+// @Router /quiz-suites/{id} [delete]
 func (h *QuizSuiteHandler) DeleteQuizSuite(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {

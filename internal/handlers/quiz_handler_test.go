@@ -71,21 +71,19 @@ func TestCreateQuiz(t *testing.T) {
 		{
 			name: "Success",
 			input: quiz.Quiz{
-				Question:      "Test Question",
-				QuizType:      quiz.QuizTypeMultiChoice,
-				CorrectAnswer: "Test Answer",
+				Question: "Test Question",
+				QuizType: quiz.QuizTypeMultiChoice,
 			},
 			userID: 1,
 			mockSetup: func() {
 				mockQuizService.On("CreateQuiz", mock.MatchedBy(func(q *quiz.Quiz) bool {
 					return q.Question == "Test Question" &&
 						q.QuizType == quiz.QuizTypeMultiChoice &&
-						q.CorrectAnswer == "Test Answer" &&
 						q.CreatedByID == uint(1)
 				})).Return(nil).Once()
 			},
 			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"id":0,"created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z","question":"Test Question","quiz_type":"multi_choice","correct_answer":"Test Answer","created_by_id":1}`,
+			expectedBody:   `{"id":0,"created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z","question":"Test Question","quiz_type":"multi_choice","created_by_id":1}`,
 		},
 		{
 			name:           "Unauthorized",
@@ -98,16 +96,14 @@ func TestCreateQuiz(t *testing.T) {
 		{
 			name:   "Service Error",
 			input: quiz.Quiz{
-				Question:      "Test Question",
-				QuizType:      quiz.QuizTypeMultiChoice,
-				CorrectAnswer: "Test Answer",
+				Question: "Test Question",
+				QuizType: quiz.QuizTypeMultiChoice,
 			},
 			userID: 1,
 			mockSetup: func() {
 				mockQuizService.On("CreateQuiz", mock.MatchedBy(func(q *quiz.Quiz) bool {
 					return q.Question == "Test Question" &&
 						q.QuizType == quiz.QuizTypeMultiChoice &&
-						q.CorrectAnswer == "Test Answer" &&
 						q.CreatedByID == uint(1)
 				})).Return(gorm.ErrInvalidDB).Once()
 			},
@@ -173,18 +169,16 @@ func TestGetQuiz(t *testing.T) {
 				mockQuizService.EXPECT().
 					GetQuizByID(uint(1)).
 					Return(&quiz.Quiz{
-						Question:      "What is the capital of France?",
-						QuizType:      quiz.QuizTypeSingleChoice,
-						CorrectAnswer: "Paris",
-						CreatedByID:   1,
+						Question:    "What is the capital of France?",
+						QuizType:    quiz.QuizTypeSingleChoice,
+						CreatedByID: 1,
 					}, nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
-				"question":       "What is the capital of France?",
-				"quiz_type":      "single_choice",
-				"correct_answer": "Paris",
-				"created_by_id":  float64(1),
+				"question":      "What is the capital of France?",
+				"quiz_type":     "single_choice",
+				"created_by_id": float64(1),
 			},
 		},
 		{
@@ -265,7 +259,6 @@ func TestGetQuiz(t *testing.T) {
 			if tt.expectedStatus == http.StatusOK {
 				assert.Equal(t, tt.expectedBody["question"], response["question"])
 				assert.Equal(t, tt.expectedBody["quiz_type"], response["quiz_type"])
-				assert.Equal(t, tt.expectedBody["correct_answer"], response["correct_answer"])
 				assert.Equal(t, tt.expectedBody["created_by_id"], response["created_by_id"])
 			} else {
 				assert.Equal(t, tt.expectedBody["error"], response["error"])

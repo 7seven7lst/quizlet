@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"quizlet/internal/auth"
 )
 
 type UserHandler struct {
@@ -23,6 +24,11 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
+}
+
+type LoginResponse struct {
+	User  user.User `json:"user"`
+	Token string    `json:"token"`
 }
 
 // @Summary Create a new user
@@ -144,7 +150,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param credentials body LoginRequest true "Login credentials"
-// @Success 200 {object} user.User
+// @Success 200 {object} LoginResponse
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
 // @Router /users/login [post]
@@ -166,7 +172,21 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	log.Printf("Login successful for user: %s", u.Email)
 
+	// Generate JWT token
+	token, err := auth.GenerateToken(u.ID)
+	if err != nil {
+		log.Printf("Failed to generate token for user %s: %v", u.Email, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
+		return
+	}
+
 	// Don't send password back in response
 	u.Password = ""
-	c.JSON(http.StatusOK, u)
+	
+	response := LoginResponse{
+		User:  *u,
+		Token: token,
+	}
+	
+	c.JSON(http.StatusOK, response)
 } 

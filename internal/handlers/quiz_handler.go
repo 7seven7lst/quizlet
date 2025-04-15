@@ -62,6 +62,7 @@ func (h *QuizHandler) CreateQuiz(c *gin.Context) {
 // @Success 200 {object} quiz.Quiz
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
+// @Security BearerAuth
 // @Router /quizzes/{id} [get]
 func (h *QuizHandler) GetQuiz(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -175,6 +176,7 @@ func (h *QuizHandler) DeleteQuiz(c *gin.Context) {
 // @Failure 401 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
+// @Security BearerAuth
 // @Router /quizzes/{id}/selections [post]
 func (h *QuizHandler) AddSelection(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -235,6 +237,7 @@ func (h *QuizHandler) RemoveSelection(c *gin.Context) {
 // @Produce json
 // @Success 200 {array} quiz.Quiz
 // @Failure 500 {object} map[string]string
+// @Security BearerAuth
 // @Router /quizzes [get]
 func (h *QuizHandler) GetQuizzes(c *gin.Context) {
 	// Get user ID from context (assuming you have middleware that sets this)

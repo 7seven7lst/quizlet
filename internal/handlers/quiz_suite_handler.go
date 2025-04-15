@@ -241,6 +241,19 @@ func (h *QuizSuiteHandler) DeleteQuizSuite(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "quiz suite deleted successfully"})
 }
 
+// @Summary Add a quiz to a quiz suite
+// @Description Add an existing quiz to a quiz suite
+// @Tags quiz-suites
+// @Produce json
+// @Param id path int true "Quiz Suite ID"
+// @Param quizId path int true "Quiz ID"
+// @Success 200 {object} SuccessResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Security BearerAuth
+// @Router /quiz-suites/{id}/quizzes/{quizId} [post]
 func (h *QuizSuiteHandler) AddQuizToSuite(c *gin.Context) {
 	suiteID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -291,6 +304,19 @@ func (h *QuizSuiteHandler) AddQuizToSuite(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "quiz added to suite successfully"})
 }
 
+// @Summary Remove a quiz from a quiz suite
+// @Description Remove a quiz from an existing quiz suite
+// @Tags quiz-suites
+// @Produce json
+// @Param id path int true "Quiz Suite ID"
+// @Param quizId path int true "Quiz ID"
+// @Success 200 {object} SuccessResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Security BearerAuth
+// @Router /quiz-suites/{id}/quizzes/{quizId} [delete]
 func (h *QuizSuiteHandler) RemoveQuizFromSuite(c *gin.Context) {
 	suiteID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {

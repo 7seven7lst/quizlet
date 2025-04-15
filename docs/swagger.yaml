@@ -243,6 +243,89 @@ paths:
       summary: Update a quiz suite
       tags:
       - quiz-suites
+  /quiz-suites/{id}/quizzes/{quizId}:
+    delete:
+      description: Remove a quiz from an existing quiz suite
+      parameters:
+      - description: Quiz Suite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Quiz ID
+        in: path
+        name: quizId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove a quiz from a quiz suite
+      tags:
+      - quiz-suites
+    post:
+      description: Add an existing quiz to a quiz suite
+      parameters:
+      - description: Quiz Suite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Quiz ID
+        in: path
+        name: quizId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a quiz to a quiz suite
+      tags:
+      - quiz-suites
   /quizzes:
     get:
       description: Get all quizzes

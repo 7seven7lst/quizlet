@@ -116,6 +116,8 @@ func main() {
 			protected.GET("/quiz-suites/:id", quizSuiteHandler.GetQuizSuite)
 			protected.PUT("/quiz-suites/:id", quizSuiteHandler.UpdateQuizSuite)
 			protected.DELETE("/quiz-suites/:id", quizSuiteHandler.DeleteQuizSuite)
+			protected.POST("/quiz-suites/:id/quizzes/:quizId", quizSuiteHandler.AddQuizToSuite)
+			protected.DELETE("/quiz-suites/:id/quizzes/:quizId", quizSuiteHandler.RemoveQuizFromSuite)
 		}
 	}
 

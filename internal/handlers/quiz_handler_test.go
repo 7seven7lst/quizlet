@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"quizlet/tests/mocks"
 	"gorm.io/gorm"
+	"quizlet/internal/models/user"
 )
 
 type MockQuizService struct {
@@ -172,6 +173,12 @@ func TestGetQuiz(t *testing.T) {
 						Question:    "What is the capital of France?",
 						QuizType:    quiz.QuizTypeSingleChoice,
 						CreatedByID: 1,
+						CreatedBy: &user.User{
+							ID:       1,
+							Username: "testuser",
+							Email:    "test@example.com",
+							Password: "hashedpassword", // This should not be exposed in response
+						},
 					}, nil)
 			},
 			expectedStatus: http.StatusOK,
@@ -179,6 +186,11 @@ func TestGetQuiz(t *testing.T) {
 				"question":      "What is the capital of France?",
 				"quiz_type":     "single_choice",
 				"created_by_id": float64(1),
+				"created_by": map[string]interface{}{
+					"id":       float64(1),
+					"username": "testuser",
+					"email":    "test@example.com",
+				},
 			},
 		},
 		{
@@ -260,6 +272,15 @@ func TestGetQuiz(t *testing.T) {
 				assert.Equal(t, tt.expectedBody["question"], response["question"])
 				assert.Equal(t, tt.expectedBody["quiz_type"], response["quiz_type"])
 				assert.Equal(t, tt.expectedBody["created_by_id"], response["created_by_id"])
+				
+				// Verify user data is present but password is not exposed
+				createdBy, ok := response["created_by"].(map[string]interface{})
+				assert.True(t, ok)
+				assert.Equal(t, tt.expectedBody["created_by"].(map[string]interface{})["id"], createdBy["id"])
+				assert.Equal(t, tt.expectedBody["created_by"].(map[string]interface{})["username"], createdBy["username"])
+				assert.Equal(t, tt.expectedBody["created_by"].(map[string]interface{})["email"], createdBy["email"])
+				_, hasPassword := createdBy["password"]
+				assert.False(t, hasPassword, "Password should not be exposed in response")
 			} else {
 				assert.Equal(t, tt.expectedBody["error"], response["error"])
 			}

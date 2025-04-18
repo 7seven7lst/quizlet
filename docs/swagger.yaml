@@ -75,7 +75,38 @@ definitions:
     - QuizTypeSingleChoice
     - QuizTypeMultiChoice
     - QuizTypeTrueFalse
+  quiz_suite.CreateQuizSuiteRequest:
+    properties:
+      description:
+        description: |-
+          @example "A collection of quizzes about various topics"
+          @required true
+        example: A collection of quizzes about various topics
+        type: string
+      title:
+        description: |-
+          @example "My Quiz Suite"
+          @required true
+        example: My Quiz Suite
+        type: string
+    required:
+    - description
+    - title
+    type: object
   quiz_suite.QuizSuite:
+    type: object
+  user.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - password
+    - username
     type: object
   user.User:
     properties:
@@ -85,8 +116,6 @@ definitions:
         type: string
       id:
         type: integer
-      password:
-        type: string
       updated_at:
         type: string
       username:
@@ -137,7 +166,7 @@ paths:
         name: quiz_suite
         required: true
         schema:
-          $ref: '#/definitions/quiz_suite.QuizSuite'
+          $ref: '#/definitions/quiz_suite.CreateQuizSuiteRequest'
       produces:
       - application/json
       responses:
@@ -146,13 +175,23 @@ paths:
           schema:
             $ref: '#/definitions/quiz_suite.QuizSuite'
         "400":
-          description: Bad Request
+          description: Bad Request - Title is required
           schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
+            additionalProperties:
+              type: string
+            type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       security:
       - BearerAuth: []
       summary: Create a new quiz suite
@@ -630,7 +669,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/user.User'
+          $ref: '#/definitions/user.CreateUserRequest'
       produces:
       - application/json
       responses:

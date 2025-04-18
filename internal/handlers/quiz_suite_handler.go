@@ -53,9 +53,21 @@ func (h *QuizSuiteHandler) validateQuizSuiteAccess(suiteID, userID uint) error {
 	return nil
 }
 
+// @Summary Create a new quiz suite
+// @Description Create a new quiz suite with the provided details
+// @Tags quiz-suites
+// @Accept json
+// @Produce json
+// @Param quiz_suite body quiz_suite.CreateQuizSuiteRequest true "Quiz Suite object"
+// @Success 201 {object} quiz_suite.QuizSuite
+// @Failure 400 {object} map[string]string "Bad Request - Title is required"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Security BearerAuth
+// @Router /quiz-suites [post]
 func (h *QuizSuiteHandler) CreateQuizSuite(c *gin.Context) {
-	var qs quiz_suite.QuizSuite
-	if err := c.ShouldBindJSON(&qs); err != nil {
+	var req quiz_suite.CreateQuizSuiteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -65,14 +77,19 @@ func (h *QuizSuiteHandler) CreateQuizSuite(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	qs.CreatedByID = userID
+
+	qs := &quiz_suite.QuizSuite{
+		Title:       req.Title,
+		Description: req.Description,
+		CreatedByID: userID,
+	}
 
 	if qs.Title == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "quiz suite title is required"})
 		return
 	}
 
-	if err := h.quizSuiteService.CreateQuizSuite(&qs); err != nil {
+	if err := h.quizSuiteService.CreateQuizSuite(qs); err != nil {
 		if err == gorm.ErrInvalidDB {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "gorm: invalid db"})
 			return
@@ -164,7 +181,7 @@ func (h *QuizSuiteHandler) GetUserQuizSuites(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Quiz Suite ID"
-// @Param quiz_suite body quiz_suite.QuizSuite true "Quiz Suite object"
+// @Param quiz_suite body quiz_suite.UpdateQuizSuiteRequest true "Quiz Suite update object"
 // @Success 200 {object} quiz_suite.QuizSuite
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
@@ -177,35 +194,49 @@ func (h *QuizSuiteHandler) UpdateQuizSuite(c *gin.Context) {
 		return
 	}
 
-	var updateQS quiz_suite.QuizSuite
-	if err := c.ShouldBindJSON(&updateQS); err != nil {
+	var req quiz_suite.UpdateQuizSuiteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	updateQS.ID = uint(id)
-	userID, err := h.getUserIDFromContext(c)
+	// First check if the quiz suite exists
+	existingSuite, err := h.quizSuiteService.GetQuizSuite(uint(id))
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return
-	}
-	updateQS.CreatedByID = userID
-
-	err = h.quizSuiteService.UpdateQuizSuite(&updateQS)
-	if err != nil {
-		if err == gorm.ErrInvalidDB {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "gorm: invalid db"})
-			return
-		}
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "quiz suite not found"})
+			return
+		}
+		if err == gorm.ErrInvalidDB {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "gorm: invalid db"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, updateQS)
+	// Update the existing suite with new values
+	existingSuite.Title = req.Title
+	existingSuite.Description = req.Description
+
+	userID, err := h.getUserIDFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+	existingSuite.CreatedByID = userID
+
+	err = h.quizSuiteService.UpdateQuizSuite(existingSuite)
+	if err != nil {
+		if err == gorm.ErrInvalidDB {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "gorm: invalid db"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, existingSuite)
 }
 
 // @Summary Delete a quiz suite

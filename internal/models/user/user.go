@@ -10,6 +10,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// CreateUserRequest represents the request body for user registration
+type CreateUserRequest struct {
+	Username string `json:"username" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
 // User represents a user in the system
 type User struct {
 	ID        uint           `gorm:"primarykey" json:"id"`
@@ -18,7 +25,7 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	Username  string         `gorm:"uniqueIndex;not null" json:"username"`
 	Email     string         `gorm:"uniqueIndex;not null" json:"email"`
-	Password  string         `gorm:"not null" json:"password,omitempty"`
+	Password  string         `gorm:"not null" json:"-"`
 }
 
 // HashPassword hashes the password using bcrypt

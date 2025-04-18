@@ -81,7 +81,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/quiz_suite.QuizSuite"
+                            "$ref": "#/definitions/quiz_suite.CreateQuizSuiteRequest"
                         }
                     }
                 ],
@@ -93,15 +93,30 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad Request - Title is required",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ErrorResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ErrorResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -847,7 +862,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.User"
+                            "$ref": "#/definitions/user.CreateUserRequest"
                         }
                     }
                 ],
@@ -1198,8 +1213,46 @@ const docTemplate = `{
                 "QuizTypeTrueFalse"
             ]
         },
+        "quiz_suite.CreateQuizSuiteRequest": {
+            "type": "object",
+            "required": [
+                "description",
+                "title"
+            ],
+            "properties": {
+                "description": {
+                    "description": "@example \"A collection of quizzes about various topics\"\n@required true",
+                    "type": "string",
+                    "example": "A collection of quizzes about various topics"
+                },
+                "title": {
+                    "description": "@example \"My Quiz Suite\"\n@required true",
+                    "type": "string",
+                    "example": "My Quiz Suite"
+                }
+            }
+        },
         "quiz_suite.QuizSuite": {
             "type": "object"
+        },
+        "user.CreateUserRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
         },
         "user.User": {
             "type": "object",
@@ -1212,9 +1265,6 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
-                },
-                "password": {
-                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"

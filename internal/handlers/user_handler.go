@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"quizlet/internal/auth"
+	"gorm.io/gorm"
 )
 
 type UserHandler struct {
@@ -36,25 +37,29 @@ type LoginResponse struct {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Param user body user.User true "User information"
+// @Param user body user.CreateUserRequest true "User information"
 // @Success 201 {object} user.User
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users [post]
 func (h *UserHandler) CreateUser(c *gin.Context) {
-	var u user.User
-	if err := c.ShouldBindJSON(&u); err != nil {
+	var req user.CreateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := h.userService.CreateUser(&u); err != nil {
+	u := &user.User{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+	}
+
+	if err := h.userService.CreateUser(u); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Don't send password back in response
-	u.Password = ""
 	c.JSON(http.StatusCreated, u)
 }
 
@@ -166,7 +171,11 @@ func (h *UserHandler) Login(c *gin.Context) {
 	u, err := h.userService.ValidatePassword(req.Email, req.Password)
 	if err != nil {
 		log.Printf("Login failed for email %s: %v", req.Email, err)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		if err == gorm.ErrRecordNotFound || err.Error() == "invalid password" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 

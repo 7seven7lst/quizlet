@@ -6,6 +6,7 @@ import (
 	"quizlet/internal/service"
 	"strconv"
 	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"quizlet/internal/auth"
@@ -271,10 +272,11 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 }
 
 // @Summary Logout user
-// @Description Revoke the refresh token from cookie
+// @Description Revoke the refresh token
 // @Tags users
 // @Accept json
 // @Produce json
+// @Param refresh_token body RefreshTokenRequest true "Refresh token"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
@@ -293,4 +295,31 @@ func (h *UserHandler) Logout(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "successfully logged out"})
+}
+
+// @Summary Get current user
+// @Description Get the current authenticated user's information
+// @Tags users
+// @Produce json
+// @Success 200 {object} user.User
+// @Failure 401 {object} map[string]string
+// @Security BearerAuth
+// @Router /users/me [get]
+func (h *UserHandler) GetCurrentUser(c *gin.Context) {
+	// Get user ID from context (set by auth middleware)
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	u, err := h.userService.GetUserByID(userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+
+	// Don't send password back in response
+	u.Password = ""
+	c.JSON(http.StatusOK, u)
 } 

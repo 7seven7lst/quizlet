@@ -5,6 +5,8 @@ import (
 	"log"
 	"quizlet/internal/models/user"
 	"quizlet/internal/repository"
+	"quizlet/internal/auth"
+	"time"
 )
 
 type UserService interface {
@@ -14,15 +16,20 @@ type UserService interface {
 	UpdateUser(user *user.User) error
 	DeleteUser(id uint) error
 	ValidatePassword(email, password string) (*user.User, error)
+	CreateRefreshToken(userID uint) (*user.RefreshToken, error)
+	ValidateRefreshToken(token string) (*user.RefreshToken, error)
+	RevokeRefreshToken(token string) error
 }
 
 type userService struct {
 	userRepo repository.UserRepository
+	refreshTokenRepo repository.RefreshTokenRepository
 }
 
-func NewUserService(userRepo repository.UserRepository) UserService {
+func NewUserService(userRepo repository.UserRepository, refreshTokenRepo repository.RefreshTokenRepository) UserService {
 	return &userService{
 		userRepo: userRepo,
+		refreshTokenRepo: refreshTokenRepo,
 	}
 }
 
@@ -86,4 +93,40 @@ func (s *userService) ValidatePassword(email, password string) (*user.User, erro
 
 	log.Printf("Password validation successful for user: %s (ID: %d)", email, user.ID)
 	return user, nil
+}
+
+func (s *userService) CreateRefreshToken(userID uint) (*user.RefreshToken, error) {
+	token, err := auth.GenerateRefreshToken()
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken := &user.RefreshToken{
+		Token:     token,
+		UserID:    userID,
+		ExpiresAt: time.Now().Add(30 * 24 * time.Hour), // 30 days
+	}
+
+	if err := s.refreshTokenRepo.Create(refreshToken); err != nil {
+		return nil, err
+	}
+
+	return refreshToken, nil
+}
+
+func (s *userService) ValidateRefreshToken(token string) (*user.RefreshToken, error) {
+	refreshToken, err := s.refreshTokenRepo.FindByToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	if refreshToken.ExpiresAt.Before(time.Now()) {
+		return nil, auth.ErrExpiredToken
+	}
+
+	return refreshToken, nil
+}
+
+func (s *userService) RevokeRefreshToken(token string) error {
+	return s.refreshTokenRepo.Revoke(token)
 } 

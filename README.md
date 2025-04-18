@@ -49,6 +49,22 @@ The API documentation is available through Swagger UI and ReDoc:
   - Raw OpenAPI/Swagger specification in JSON format
   - Useful for generating client libraries or importing into other tools
 
+### Generating Swagger Documentation
+
+To update the Swagger documentation after making changes to the API:
+
+1. Install swag if you haven't already:
+   ```bash
+   go install github.com/swaggo/swag/cmd/swag@latest
+   ```
+
+2. Generate the documentation:
+   ```bash
+   swag init -g cmd/api/main.go -o docs
+   ```
+
+This will update the Swagger documentation in the `docs` directory with any changes to your API endpoints, models, or authentication flow.
+
 ## Project Structure
 
 ```

@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 	"quizlet/internal/models/user"
+	"quizlet/internal/auth"
 )
 
 type MockUserService struct {
@@ -56,6 +57,27 @@ func (m *MockUserService) ValidatePassword(email, password string) (*user.User, 
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*user.User), args.Error(1)
+}
+
+func (m *MockUserService) CreateRefreshToken(userID uint) (*user.RefreshToken, error) {
+	args := m.Called(userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*user.RefreshToken), args.Error(1)
+}
+
+func (m *MockUserService) ValidateRefreshToken(token string) (*user.RefreshToken, error) {
+	args := m.Called(token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*user.RefreshToken), args.Error(1)
+}
+
+func (m *MockUserService) RevokeRefreshToken(token string) error {
+	args := m.Called(token)
+	return args.Error(0)
 }
 
 func TestCreateUser(t *testing.T) {
@@ -255,10 +277,18 @@ func TestLogin(t *testing.T) {
 					CreatedAt: time.Time{},
 					UpdatedAt: time.Time{},
 				}, nil).Once()
+				
+				mockService.On("CreateRefreshToken", uint(1)).Return(&user.RefreshToken{
+					Token:     "refresh-token-123",
+					UserID:    1,
+					ExpiresAt: time.Now().Add(30 * 24 * time.Hour),
+				}, nil).Once()
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
-				"token": mock.Anything,
+				"access_token": mock.Anything,
+				"refresh_token": "refresh-token-123",
+				"expires_in": float64(900),
 				"user": map[string]interface{}{
 					"id":         float64(1),
 					"username":   "testuser",
@@ -336,12 +366,195 @@ func TestLogin(t *testing.T) {
 
 			if tc.expectedStatus == http.StatusOK {
 				// For successful login, verify token exists but don't check its exact value
-				assert.Contains(t, response, "token")
-				assert.NotEmpty(t, response["token"])
+				assert.Contains(t, response, "access_token")
+				assert.NotEmpty(t, response["access_token"])
+				assert.Equal(t, tc.expectedBody["refresh_token"], response["refresh_token"])
+				assert.Equal(t, tc.expectedBody["expires_in"], response["expires_in"])
 				assert.Equal(t, tc.expectedBody["user"], response["user"])
 			} else {
 				assert.Equal(t, tc.expectedBody, response)
 			}
+		})
+	}
+}
+
+func TestRefreshToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockService := new(MockUserService)
+
+	testCases := []struct {
+		name           string
+		requestBody    map[string]interface{}
+		mockSetup      func()
+		expectedStatus int
+		expectedBody   map[string]interface{}
+	}{
+		{
+			name:   "Success",
+			requestBody: map[string]interface{}{
+				"refresh_token": "valid-refresh-token",
+			},
+			mockSetup: func() {
+				mockService.On("ValidateRefreshToken", "valid-refresh-token").Return(&user.RefreshToken{
+					UserID: 1,
+				}, nil).Once()
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody: map[string]interface{}{
+				"access_token": mock.Anything,
+				"expires_in": float64(900),
+			},
+		},
+		{
+			name:   "Invalid Request",
+			requestBody: map[string]interface{}{
+				"refresh_token": "",
+			},
+			mockSetup:      func() {},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody: map[string]interface{}{
+				"error": "Key: 'RefreshTokenRequest.RefreshToken' Error:Field validation for 'RefreshToken' failed on the 'required' tag",
+			},
+		},
+		{
+			name:   "Invalid Token",
+			requestBody: map[string]interface{}{
+				"refresh_token": "invalid-token",
+			},
+			mockSetup: func() {
+				mockService.On("ValidateRefreshToken", "invalid-token").Return(nil, gorm.ErrRecordNotFound).Once()
+			},
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody: map[string]interface{}{
+				"error": "invalid refresh token",
+			},
+		},
+		{
+			name:   "Expired Token",
+			requestBody: map[string]interface{}{
+				"refresh_token": "expired-token",
+			},
+			mockSetup: func() {
+				mockService.On("ValidateRefreshToken", "expired-token").Return(nil, auth.ErrExpiredToken).Once()
+			},
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody: map[string]interface{}{
+				"error": "refresh token has expired",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			// Set up request
+			body, _ := json.Marshal(tc.requestBody)
+			c.Request = httptest.NewRequest(http.MethodPost, "/refresh", bytes.NewBuffer(body))
+			c.Request.Header.Set("Content-Type", "application/json")
+
+			// Set up mock
+			tc.mockSetup()
+
+			// Create handler and execute
+			handler := NewUserHandler(mockService)
+			handler.RefreshToken(c)
+
+			// Assert response
+			assert.Equal(t, tc.expectedStatus, w.Code)
+
+			var response map[string]interface{}
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			assert.NoError(t, err)
+
+			if tc.expectedStatus == http.StatusOK {
+				// For successful refresh, verify token exists but don't check its exact value
+				assert.Contains(t, response, "access_token")
+				assert.NotEmpty(t, response["access_token"])
+				assert.Equal(t, tc.expectedBody["expires_in"], response["expires_in"])
+			} else {
+				assert.Equal(t, tc.expectedBody, response)
+			}
+		})
+	}
+}
+
+func TestLogout(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockService := new(MockUserService)
+
+	testCases := []struct {
+		name           string
+		requestBody    map[string]interface{}
+		mockSetup      func()
+		expectedStatus int
+		expectedBody   map[string]interface{}
+	}{
+		{
+			name:   "Success",
+			requestBody: map[string]interface{}{
+				"refresh_token": "valid-refresh-token",
+			},
+			mockSetup: func() {
+				mockService.On("RevokeRefreshToken", "valid-refresh-token").Return(nil).Once()
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody: map[string]interface{}{
+				"message": "successfully logged out",
+			},
+		},
+		{
+			name:   "Invalid Request",
+			requestBody: map[string]interface{}{
+				"refresh_token": "",
+			},
+			mockSetup:      func() {},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody: map[string]interface{}{
+				"error": "Key: 'RefreshTokenRequest.RefreshToken' Error:Field validation for 'RefreshToken' failed on the 'required' tag",
+			},
+		},
+		{
+			name:   "Service Error",
+			requestBody: map[string]interface{}{
+				"refresh_token": "invalid-token",
+			},
+			mockSetup: func() {
+				mockService.On("RevokeRefreshToken", "invalid-token").Return(gorm.ErrInvalidDB).Once()
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody: map[string]interface{}{
+				"error": "failed to revoke refresh token",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			// Set up request
+			body, _ := json.Marshal(tc.requestBody)
+			c.Request = httptest.NewRequest(http.MethodPost, "/logout", bytes.NewBuffer(body))
+			c.Request.Header.Set("Content-Type", "application/json")
+
+			// Set up mock
+			tc.mockSetup()
+
+			// Create handler and execute
+			handler := NewUserHandler(mockService)
+			handler.Logout(c)
+
+			// Assert response
+			assert.Equal(t, tc.expectedStatus, w.Code)
+
+			var response map[string]interface{}
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.expectedBody, response)
 		})
 	}
 } 

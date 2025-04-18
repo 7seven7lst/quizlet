@@ -55,9 +55,10 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	quizRepo := repository.NewQuizRepository(db)
 	quizSuiteRepo := repository.NewQuizSuiteRepository(db)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
 
 	// Initialize services
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, refreshTokenRepo)
 	quizService := service.NewQuizService(quizRepo)
 	quizSuiteService := service.NewQuizSuiteService(quizSuiteRepo, quizRepo)
 
@@ -87,17 +88,21 @@ func main() {
 	// API routes
 	api := r.Group("/api")
 	{
-		// User routes
+		// Public user routes (no auth required)
 		api.POST("/users/login", userHandler.Login)
+		api.POST("/users/refresh", userHandler.RefreshToken)
 		api.POST("/users", userHandler.CreateUser)
-		api.GET("/users/:id", userHandler.GetUser)
-		api.PUT("/users/:id", userHandler.UpdateUser)
-		api.DELETE("/users/:id", userHandler.DeleteUser)
 
 		// Protected routes
 		protected := api.Group("")
 		protected.Use(auth.AuthMiddleware())
 		{
+			// Protected user routes
+			protected.GET("/users/:id", userHandler.GetUser)
+			protected.PUT("/users/:id", userHandler.UpdateUser)
+			protected.DELETE("/users/:id", userHandler.DeleteUser)
+			protected.POST("/users/logout", userHandler.Logout)
+
 			// Quiz routes
 			quizRoutes := api.Group("/quizzes")
 			{

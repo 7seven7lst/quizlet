@@ -17,10 +17,28 @@ definitions:
     type: object
   handlers.LoginResponse:
     properties:
-      token:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
         type: string
       user:
         $ref: '#/definitions/user.User'
+    type: object
+  handlers.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  handlers.RefreshTokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
     type: object
   handlers.SuccessResponse:
     properties:
@@ -94,6 +112,15 @@ definitions:
     - title
     type: object
   quiz_suite.QuizSuite:
+    type: object
+  quiz_suite.UpdateQuizSuiteRequest:
+    properties:
+      description:
+        example: An updated collection of quizzes
+        type: string
+      title:
+        example: Updated Quiz Suite
+        type: string
     type: object
   user.CreateUserRequest:
     properties:
@@ -256,12 +283,12 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Quiz Suite object
+      - description: Quiz Suite update object
         in: body
         name: quiz_suite
         required: true
         schema:
-          $ref: '#/definitions/quiz_suite.QuizSuite'
+          $ref: '#/definitions/quiz_suite.UpdateQuizSuiteRequest'
       produces:
       - application/json
       responses:
@@ -716,12 +743,20 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete a user
       tags:
       - users
@@ -746,12 +781,20 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "404":
           description: Not Found
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Get a user by ID
       tags:
       - users
@@ -784,12 +827,20 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Update a user
       tags:
       - users
@@ -825,6 +876,71 @@ paths:
               type: string
             type: object
       summary: Login user
+      tags:
+      - users
+  /users/logout:
+    post:
+      consumes:
+      - application/json
+      description: Revoke the refresh token from cookie
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Logout user
+      tags:
+      - users
+  /users/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Get a new access token using a refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: refresh_token
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.RefreshTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh access token
       tags:
       - users
 securityDefinitions:

@@ -28,8 +28,19 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	User  user.User `json:"user"`
-	Token string    `json:"token"`
+	User         user.User `json:"user"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresIn    int64     `json:"expires_in"`
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+type RefreshTokenResponse struct {
+	AccessToken string `json:"access_token"`
+	ExpiresIn   int64  `json:"expires_in"`
 }
 
 // @Summary Create a new user
@@ -70,7 +81,9 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // @Param id path int true "User ID"
 // @Success 200 {object} user.User
 // @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
 // @Failure 404 {object} map[string]string
+// @Security BearerAuth
 // @Router /users/{id} [get]
 func (h *UserHandler) GetUser(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -99,7 +112,9 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 // @Param user body user.User true "User information"
 // @Success 200 {object} user.User
 // @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
 // @Failure 500 {object} map[string]string
+// @Security BearerAuth
 // @Router /users/{id} [put]
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -132,7 +147,9 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Param id path int true "User ID"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
 // @Failure 500 {object} map[string]string
+// @Security BearerAuth
 // @Router /users/{id} [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -181,11 +198,19 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	log.Printf("Login successful for user: %s", u.Email)
 
-	// Generate JWT token
-	token, err := auth.GenerateToken(u.ID)
+	// Generate access token
+	accessToken, err := auth.GenerateAccessToken(u.ID)
 	if err != nil {
-		log.Printf("Failed to generate token for user %s: %v", u.Email, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
+		log.Printf("Failed to generate access token for user %s: %v", u.Email, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
+		return
+	}
+
+	// Generate refresh token
+	refreshToken, err := h.userService.CreateRefreshToken(u.ID)
+	if err != nil {
+		log.Printf("Failed to generate refresh token for user %s: %v", u.Email, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate refresh token"})
 		return
 	}
 
@@ -193,9 +218,79 @@ func (h *UserHandler) Login(c *gin.Context) {
 	u.Password = ""
 	
 	response := LoginResponse{
-		User:  *u,
-		Token: token,
+		User:         *u,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken.Token,
+		ExpiresIn:    900, // 15 minutes in seconds
 	}
 	
 	c.JSON(http.StatusOK, response)
+}
+
+// @Summary Refresh access token
+// @Description Get a new access token using a refresh token
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param refresh_token body RefreshTokenRequest true "Refresh token"
+// @Success 200 {object} RefreshTokenResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Router /users/refresh [post]
+func (h *UserHandler) RefreshToken(c *gin.Context) {
+	var req RefreshTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate refresh token
+	refreshToken, err := h.userService.ValidateRefreshToken(req.RefreshToken)
+	if err != nil {
+		if err == auth.ErrExpiredToken {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "refresh token has expired"})
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
+		}
+		return
+	}
+
+	// Generate new access token
+	accessToken, err := auth.GenerateAccessToken(refreshToken.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
+		return
+	}
+
+	response := RefreshTokenResponse{
+		AccessToken: accessToken,
+		ExpiresIn:   900, // 15 minutes in seconds
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// @Summary Logout user
+// @Description Revoke the refresh token from cookie
+// @Tags users
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Security BearerAuth
+// @Router /users/logout [post]
+func (h *UserHandler) Logout(c *gin.Context) {
+	var req RefreshTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.userService.RevokeRefreshToken(req.RefreshToken); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to revoke refresh token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "successfully logged out"})
 } 

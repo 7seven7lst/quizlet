@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"time"
 
@@ -13,6 +15,7 @@ var (
 	
 	ErrInvalidToken = errors.New("invalid token")
 	ErrExpiredToken = errors.New("token has expired")
+	ErrInvalidRefreshToken = errors.New("invalid refresh token")
 )
 
 type Claims struct {
@@ -20,12 +23,12 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-// GenerateToken creates a new JWT token for a user
-func GenerateToken(userID uint) (string, error) {
+// GenerateAccessToken creates a new JWT access token for a user
+func GenerateAccessToken(userID uint) (string, error) {
 	claims := Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // Token expires in 24 hours
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // Access token expires in 15 minutes
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
@@ -33,6 +36,15 @@ func GenerateToken(userID uint) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(secretKey)
+}
+
+// GenerateRefreshToken creates a new refresh token for a user
+func GenerateRefreshToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 // ValidateToken validates the JWT token and returns the claims

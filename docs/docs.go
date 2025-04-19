@@ -256,6 +256,332 @@ const docTemplate = `{
                 }
             }
         },
+        "/quiz-suites/{id}/attempts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all quiz attempts for a specific quiz suite that belong to the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "quiz-attempts"
+                ],
+                "summary": "List quiz attempts for a quiz suite",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Quiz Suite ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/quiz_attempt.QuizAttempt"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new quiz attempt for a specific quiz suite",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "quiz-attempts"
+                ],
+                "summary": "Create a new quiz attempt",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Quiz Suite ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Quiz attempt creation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/quiz_attempt.CreateQuizAttemptRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/quiz_attempt.QuizAttempt"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz-suites/{id}/attempts/{attemptId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a specific quiz attempt by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "quiz-attempts"
+                ],
+                "summary": "Get a specific quiz attempt",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Quiz Suite ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Quiz Attempt ID",
+                        "name": "attemptId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/quiz_attempt.QuizAttempt"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update a specific quiz attempt by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "quiz-attempts"
+                ],
+                "summary": "Update a quiz attempt",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Quiz Suite ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Quiz Attempt ID",
+                        "name": "attemptId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Quiz attempt update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/quiz_attempt.UpdateQuizAttemptRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/quiz_attempt.QuizAttempt"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a specific quiz attempt by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "quiz-attempts"
+                ],
+                "summary": "Delete a quiz attempt",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Quiz Suite ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Quiz Attempt ID",
+                        "name": "attemptId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/quiz-suites/{id}/quizzes/{quizId}": {
             "post": {
                 "security": [
@@ -953,7 +1279,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Revoke the refresh token from cookie",
+                "description": "Revoke the refresh token",
                 "consumes": [
                     "application/json"
                 ],
@@ -964,6 +1290,17 @@ const docTemplate = `{
                     "users"
                 ],
                 "summary": "Logout user",
+                "parameters": [
+                    {
+                        "description": "Refresh token",
+                        "name": "refresh_token",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.RefreshTokenRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1278,10 +1615,13 @@ const docTemplate = `{
     },
     "definitions": {
         "handlers.ErrorResponse": {
+            "description": "Error response from the API",
             "type": "object",
             "properties": {
                 "error": {
-                    "type": "string"
+                    "description": "The error message\n@example \"quiz attempt not found\"",
+                    "type": "string",
+                    "example": "quiz attempt not found"
                 }
             }
         },
@@ -1340,10 +1680,13 @@ const docTemplate = `{
             }
         },
         "handlers.SuccessResponse": {
+            "description": "Success response from the API",
             "type": "object",
             "properties": {
                 "message": {
-                    "type": "string"
+                    "description": "The success message\n@example \"Operation completed successfully\"",
+                    "type": "string",
+                    "example": "Operation completed successfully"
                 }
             }
         },
@@ -1417,6 +1760,107 @@ const docTemplate = `{
                 "QuizTypeMultiChoice",
                 "QuizTypeTrueFalse"
             ]
+        },
+        "quiz_attempt.CreateQuizAttemptRequest": {
+            "description": "Request body for creating a new quiz attempt",
+            "type": "object",
+            "required": [
+                "completed",
+                "score"
+            ],
+            "properties": {
+                "completed": {
+                    "description": "Whether the attempt is completed\n@example true\n@required true",
+                    "type": "boolean",
+                    "example": true
+                },
+                "score": {
+                    "description": "The score achieved in this attempt\n@example 80\n@required true\n@minimum 0\n@maximum 100",
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 0,
+                    "example": 80
+                }
+            }
+        },
+        "quiz_attempt.QuizAttempt": {
+            "description": "A record of a user's attempt at completing a quiz suite",
+            "type": "object",
+            "properties": {
+                "completed": {
+                    "description": "Whether the attempt is completed\n@example true",
+                    "type": "boolean",
+                    "example": true
+                },
+                "completed_at": {
+                    "description": "The timestamp when the attempt was completed\n@example \"2024-04-17T00:00:00Z\"\n@readOnly true",
+                    "type": "string",
+                    "example": "2024-04-17T00:00:00Z"
+                },
+                "created_at": {
+                    "description": "The timestamp when the quiz attempt was created\n@example \"2024-04-17T00:00:00Z\"\n@readOnly true",
+                    "type": "string",
+                    "example": "2024-04-17T00:00:00Z"
+                },
+                "deleted_at": {
+                    "description": "The timestamp when the quiz attempt was deleted (soft delete)\n@readOnly true",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "The unique identifier for the quiz attempt\n@example 1\n@readOnly true",
+                    "type": "integer",
+                    "example": 1
+                },
+                "quiz_suite_id": {
+                    "description": "The ID of the quiz suite being attempted\n@example 1\n@readOnly true",
+                    "type": "integer",
+                    "example": 1
+                },
+                "score": {
+                    "description": "The score achieved in this attempt\n@example 80\n@minimum 0\n@maximum 100",
+                    "type": "integer",
+                    "example": 80
+                },
+                "started_at": {
+                    "description": "The timestamp when the attempt was started\n@example \"2024-04-17T00:00:00Z\"\n@readOnly true",
+                    "type": "string",
+                    "example": "2024-04-17T00:00:00Z"
+                },
+                "updated_at": {
+                    "description": "The timestamp when the quiz attempt was last updated\n@example \"2024-04-17T00:00:00Z\"\n@readOnly true",
+                    "type": "string",
+                    "example": "2024-04-17T00:00:00Z"
+                },
+                "user": {
+                    "description": "The user who made the attempt\n@readOnly true",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/user.User"
+                        }
+                    ]
+                },
+                "user_id": {
+                    "description": "The ID of the user who made the attempt\n@example 1\n@readOnly true",
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "quiz_attempt.UpdateQuizAttemptRequest": {
+            "description": "Request body for updating an existing quiz attempt",
+            "type": "object",
+            "properties": {
+                "completed": {
+                    "description": "Whether the attempt is completed\n@example true",
+                    "type": "boolean",
+                    "example": true
+                },
+                "score": {
+                    "description": "The score achieved in this attempt\n@example 90\n@minimum 0\n@maximum 100",
+                    "type": "integer",
+                    "example": 90
+                }
+            }
         },
         "quiz_suite.CreateQuizSuiteRequest": {
             "type": "object",

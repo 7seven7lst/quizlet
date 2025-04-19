@@ -6,7 +6,6 @@ import (
 	"quizlet/internal/service"
 	"strconv"
 	"log"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"quizlet/internal/auth"

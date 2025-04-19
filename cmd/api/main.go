@@ -57,16 +57,19 @@ func main() {
 	quizRepo := repository.NewQuizRepository(db)
 	quizSuiteRepo := repository.NewQuizSuiteRepository(db)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
+	quizAttemptRepo := repository.NewQuizAttemptRepository(db)
 
 	// Initialize services
 	userService := service.NewUserService(userRepo, refreshTokenRepo)
 	quizService := service.NewQuizService(quizRepo)
 	quizSuiteService := service.NewQuizSuiteService(quizSuiteRepo, quizRepo)
+	quizAttemptService := service.NewQuizAttemptService(quizAttemptRepo)
 
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userService)
 	quizHandler := handlers.NewQuizHandler(quizService)
 	quizSuiteHandler := handlers.NewQuizSuiteHandler(quizSuiteService)
+	quizAttemptHandler := handlers.NewQuizAttemptHandler(quizAttemptService)
 
 	r := gin.Default()
 
@@ -135,6 +138,13 @@ func main() {
 			protected.DELETE("/quiz-suites/:id", quizSuiteHandler.DeleteQuizSuite)
 			protected.POST("/quiz-suites/:id/quizzes/:quizId", quizSuiteHandler.AddQuizToSuite)
 			protected.DELETE("/quiz-suites/:id/quizzes/:quizId", quizSuiteHandler.RemoveQuizFromSuite)
+
+			// Quiz Attempt routes
+			protected.GET("/quiz-suites/:id/attempts", quizAttemptHandler.ListQuizAttempts)
+			protected.POST("/quiz-suites/:id/attempts", quizAttemptHandler.CreateQuizAttempt)
+			protected.GET("/quiz-suites/:id/attempts/:attemptId", quizAttemptHandler.GetQuizAttempt)
+			protected.PUT("/quiz-suites/:id/attempts/:attemptId", quizAttemptHandler.UpdateQuizAttempt)
+			protected.DELETE("/quiz-suites/:id/attempts/:attemptId", quizAttemptHandler.DeleteQuizAttempt)
 		}
 	}
 

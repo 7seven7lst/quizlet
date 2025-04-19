@@ -1,8 +1,13 @@
 basePath: /api
 definitions:
   handlers.ErrorResponse:
+    description: Error response from the API
     properties:
       error:
+        description: |-
+          The error message
+          @example "quiz attempt not found"
+        example: quiz attempt not found
         type: string
     type: object
   handlers.LoginRequest:
@@ -41,8 +46,13 @@ definitions:
         type: integer
     type: object
   handlers.SuccessResponse:
+    description: Success response from the API
     properties:
       message:
+        description: |-
+          The success message
+          @example "Operation completed successfully"
+        example: Operation completed successfully
         type: string
     type: object
   quiz.Quiz:
@@ -93,6 +103,127 @@ definitions:
     - QuizTypeSingleChoice
     - QuizTypeMultiChoice
     - QuizTypeTrueFalse
+  quiz_attempt.CreateQuizAttemptRequest:
+    description: Request body for creating a new quiz attempt
+    properties:
+      completed:
+        description: |-
+          Whether the attempt is completed
+          @example true
+          @required true
+        example: true
+        type: boolean
+      score:
+        description: |-
+          The score achieved in this attempt
+          @example 80
+          @required true
+          @minimum 0
+          @maximum 100
+        example: 80
+        maximum: 100
+        minimum: 0
+        type: integer
+    required:
+    - completed
+    - score
+    type: object
+  quiz_attempt.QuizAttempt:
+    description: A record of a user's attempt at completing a quiz suite
+    properties:
+      completed:
+        description: |-
+          Whether the attempt is completed
+          @example true
+        example: true
+        type: boolean
+      completed_at:
+        description: |-
+          The timestamp when the attempt was completed
+          @example "2024-04-17T00:00:00Z"
+          @readOnly true
+        example: "2024-04-17T00:00:00Z"
+        type: string
+      created_at:
+        description: |-
+          The timestamp when the quiz attempt was created
+          @example "2024-04-17T00:00:00Z"
+          @readOnly true
+        example: "2024-04-17T00:00:00Z"
+        type: string
+      deleted_at:
+        description: |-
+          The timestamp when the quiz attempt was deleted (soft delete)
+          @readOnly true
+        type: string
+      id:
+        description: |-
+          The unique identifier for the quiz attempt
+          @example 1
+          @readOnly true
+        example: 1
+        type: integer
+      quiz_suite_id:
+        description: |-
+          The ID of the quiz suite being attempted
+          @example 1
+          @readOnly true
+        example: 1
+        type: integer
+      score:
+        description: |-
+          The score achieved in this attempt
+          @example 80
+          @minimum 0
+          @maximum 100
+        example: 80
+        type: integer
+      started_at:
+        description: |-
+          The timestamp when the attempt was started
+          @example "2024-04-17T00:00:00Z"
+          @readOnly true
+        example: "2024-04-17T00:00:00Z"
+        type: string
+      updated_at:
+        description: |-
+          The timestamp when the quiz attempt was last updated
+          @example "2024-04-17T00:00:00Z"
+          @readOnly true
+        example: "2024-04-17T00:00:00Z"
+        type: string
+      user:
+        allOf:
+        - $ref: '#/definitions/user.User'
+        description: |-
+          The user who made the attempt
+          @readOnly true
+      user_id:
+        description: |-
+          The ID of the user who made the attempt
+          @example 1
+          @readOnly true
+        example: 1
+        type: integer
+    type: object
+  quiz_attempt.UpdateQuizAttemptRequest:
+    description: Request body for updating an existing quiz attempt
+    properties:
+      completed:
+        description: |-
+          Whether the attempt is completed
+          @example true
+        example: true
+        type: boolean
+      score:
+        description: |-
+          The score achieved in this attempt
+          @example 90
+          @minimum 0
+          @maximum 100
+        example: 90
+        type: integer
+    type: object
   quiz_suite.CreateQuizSuiteRequest:
     properties:
       description:
@@ -309,6 +440,218 @@ paths:
       summary: Update a quiz suite
       tags:
       - quiz-suites
+  /quiz-suites/{id}/attempts:
+    get:
+      consumes:
+      - application/json
+      description: Get all quiz attempts for a specific quiz suite that belong to
+        the authenticated user
+      parameters:
+      - description: Quiz Suite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/quiz_attempt.QuizAttempt'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List quiz attempts for a quiz suite
+      tags:
+      - quiz-attempts
+    post:
+      consumes:
+      - application/json
+      description: Create a new quiz attempt for a specific quiz suite
+      parameters:
+      - description: Quiz Suite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Quiz attempt creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/quiz_attempt.CreateQuizAttemptRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/quiz_attempt.QuizAttempt'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new quiz attempt
+      tags:
+      - quiz-attempts
+  /quiz-suites/{id}/attempts/{attemptId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific quiz attempt by ID
+      parameters:
+      - description: Quiz Suite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Quiz Attempt ID
+        in: path
+        name: attemptId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a quiz attempt
+      tags:
+      - quiz-attempts
+    get:
+      consumes:
+      - application/json
+      description: Get a specific quiz attempt by ID
+      parameters:
+      - description: Quiz Suite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Quiz Attempt ID
+        in: path
+        name: attemptId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/quiz_attempt.QuizAttempt'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a specific quiz attempt
+      tags:
+      - quiz-attempts
+    put:
+      consumes:
+      - application/json
+      description: Update a specific quiz attempt by ID
+      parameters:
+      - description: Quiz Suite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Quiz Attempt ID
+        in: path
+        name: attemptId
+        required: true
+        type: integer
+      - description: Quiz attempt update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/quiz_attempt.UpdateQuizAttemptRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/quiz_attempt.QuizAttempt'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a quiz attempt
+      tags:
+      - quiz-attempts
   /quiz-suites/{id}/quizzes/{quizId}:
     delete:
       description: Remove a quiz from an existing quiz suite
@@ -882,7 +1225,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Revoke the refresh token from cookie
+      description: Revoke the refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: refresh_token
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RefreshTokenRequest'
       produces:
       - application/json
       responses:

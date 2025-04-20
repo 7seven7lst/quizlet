@@ -119,16 +119,13 @@ func main() {
 			protected.POST("/users/logout", userHandler.Logout)
 
 			// Quiz routes
-			quizRoutes := api.Group("/quizzes")
-			{
-				quizRoutes.POST("", quizHandler.CreateQuiz)
-				quizRoutes.GET("/:id", quizHandler.GetQuiz)
-				quizRoutes.PUT("/:id", quizHandler.UpdateQuiz)
-				quizRoutes.DELETE("/:id", quizHandler.DeleteQuiz)
-				quizRoutes.POST("/:id/selections", quizHandler.AddSelection)
-				quizRoutes.DELETE("/:id/selections/:selectionId", quizHandler.RemoveSelection)
-				quizRoutes.GET("/user", quizHandler.GetQuizzes)
-			}
+			protected.POST("/quizzes", quizHandler.CreateQuiz)
+			protected.GET("/quizzes/:id", quizHandler.GetQuiz)
+			protected.PUT("/quizzes/:id", quizHandler.UpdateQuiz)
+			protected.DELETE("/quizzes/:id", quizHandler.DeleteQuiz)
+			protected.POST("/quizzes/:id/selections", quizHandler.AddSelection)
+			protected.DELETE("/quizzes/:id/selections/:selectionId", quizHandler.RemoveSelection)
+			protected.GET("/quizzes/user", quizHandler.GetQuizzes)
 
 			// Quiz Suite routes
 			protected.POST("/quiz-suites", quizSuiteHandler.CreateQuizSuite)
